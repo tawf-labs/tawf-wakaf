@@ -1,0 +1,25 @@
+# Secrets — NEVER commit. Leaked keys are drained by bots within seconds.
+.env
+.env.*
+!.env.example
+*.key
+keystore/
+**/keystore/
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/dry-run/
+contracts/.gas-snapshot
+
+# Node / Vite
+node_modules/
+web/dist/
+web/.vite/
+*.log
+npm-debug.log*
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

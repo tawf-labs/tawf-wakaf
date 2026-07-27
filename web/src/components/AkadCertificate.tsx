@@ -1,0 +1,59 @@
+import { useReadContract } from "wagmi";
+import { CONTRACTS } from "../lib/config";
+import { IkrarAkadNFTAbi } from "../generated/abis";
+import { AddressChip } from "./ui";
+
+const akad = CONTRACTS.akad as `0x${string}`;
+
+/// Renders the akad certificate straight from `tokenURI`.
+///
+/// The SVG and its metadata are generated inside the contract and returned as a base64 data URI,
+/// so this displays exactly what any wallet or marketplace would show — no IPFS gateway, no
+/// pinning service, nothing that can go dark and take the certificate with it.
+export function AkadCertificate({ tokenId }: { tokenId: bigint }) {
+  const { data: uri, isLoading } = useReadContract({
+    address: akad,
+    abi: IkrarAkadNFTAbi,
+    functionName: "tokenURI",
+    args: [tokenId],
+  });
+
+  if (isLoading) {
+    return <div className="h-64 animate-pulse rounded-2xl bg-tawf-green/5" />;
+  }
+  if (!uri || typeof uri !== "string") {
+    return <p className="text-sm text-tawf-muted">Sertifikat tidak dapat dimuat.</p>;
+  }
+
+  let image = "";
+  let name = "";
+  try {
+    const json = JSON.parse(atob(uri.replace("data:application/json;base64,", "")));
+    image = json.image ?? "";
+    name = json.name ?? "";
+  } catch {
+    return <p className="text-sm text-tawf-muted">Metadata sertifikat tidak valid.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+      {image && (
+        <img
+          src={image}
+          alt={name || `Sertifikat Ikrar Akad #${tokenId}`}
+          className="w-full max-w-[280px] rounded-2xl border border-tawf-green/10"
+        />
+      )}
+      <div className="text-sm">
+        <p className="font-serif text-lg text-tawf-green">{name}</p>
+        <p className="mt-2 text-tawf-muted">
+          Sertifikat ini dibuat sepenuhnya on-chain — gambar dan metadatanya dihasilkan oleh
+          kontrak, bukan disimpan di server mana pun.
+        </p>
+        <div className="mt-3">
+          <AddressChip address={akad} label="Kontrak" />
+        </div>
+      </div>
+    </div>
+  );
+}
