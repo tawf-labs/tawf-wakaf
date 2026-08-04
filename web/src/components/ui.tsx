@@ -95,7 +95,7 @@ export function Button({
       className={`${variant === "primary" ? "btn-primary" : "btn-secondary"} ${className}`}
     >
       {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-      {busy ? (busyLabel ?? "Memproses…") : children}
+      {busy ? (busyLabel ?? "Processing…") : children}
     </button>
   );
 }
@@ -111,8 +111,8 @@ export function ErrorNote({ message, onDismiss }: { message: string; onDismiss?:
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
       <span className="flex-1">{message}</span>
       {onDismiss && (
-        <button onClick={onDismiss} className="shrink-0 underline" aria-label="Tutup pesan galat">
-          tutup
+        <button onClick={onDismiss} className="shrink-0 underline" aria-label="Dismiss error">
+          dismiss
         </button>
       )}
     </div>
@@ -146,7 +146,7 @@ export function AddressChip({ address, label }: { address?: string; label?: stri
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         }}
-        aria-label="Salin alamat"
+        aria-label="Copy address"
         className="text-tawf-muted transition-colors hover:text-tawf-green"
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -156,7 +156,7 @@ export function AddressChip({ address, label }: { address?: string; label?: stri
           href={link}
           target="_blank"
           rel="noreferrer noopener"
-          aria-label="Lihat di block explorer"
+          aria-label="View on block explorer"
           className="text-tawf-muted transition-colors hover:text-tawf-green"
         >
           <ExternalLink className="h-3.5 w-3.5" />

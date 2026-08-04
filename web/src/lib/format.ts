@@ -7,7 +7,7 @@ export function formatRp(base: bigint | undefined, decimals: number, opts?: { co
   const asNumber = Number(formatUnits(base, decimals));
 
   if (opts?.compact && Math.abs(asNumber) >= 1_000_000) {
-    return `Rp ${new Intl.NumberFormat("id-ID", {
+    return `Rp ${new Intl.NumberFormat("en-US", {
       notation: "compact",
       maximumFractionDigits: 1,
     }).format(asNumber)}`;
@@ -16,7 +16,7 @@ export function formatRp(base: bigint | undefined, decimals: number, opts?: { co
   // Sub-rupiah amounts (harvest bounties, dust) would otherwise render as a misleading "Rp 0".
   const fractionDigits = asNumber !== 0 && Math.abs(asNumber) < 1 ? 2 : 0;
 
-  return `Rp ${new Intl.NumberFormat("id-ID", {
+  return `Rp ${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   }).format(asNumber)}`;
@@ -43,30 +43,30 @@ export function truncateAddress(addr?: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
-/// Seconds remaining -> a human countdown in Indonesian.
+/// Seconds remaining -> a human-readable countdown.
 export function formatCountdown(secondsLeft: number): string {
-  if (secondsLeft <= 0) return "Selesai";
+  if (secondsLeft <= 0) return "Complete";
   const d = Math.floor(secondsLeft / 86400);
   const h = Math.floor((secondsLeft % 86400) / 3600);
   const m = Math.floor((secondsLeft % 3600) / 60);
   const s = Math.floor(secondsLeft % 60);
 
-  if (d > 0) return `${d} hari ${h} jam`;
-  if (h > 0) return `${h} jam ${m} menit`;
-  if (m > 0) return `${m} menit ${s} detik`;
-  return `${s} detik`;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
 }
 
 /// Tenor length in seconds -> the label shown on the tenor picker.
 export function formatTenor(seconds: bigint): string {
   const s = Number(seconds);
-  if (s >= 86400) return `${Math.floor(s / 86400)} Hari`;
-  if (s >= 3600) return `${Math.floor(s / 3600)} Jam`;
-  return `${Math.floor(s / 60)} Menit`;
+  if (s >= 86400) return `${Math.floor(s / 86400)} Days`;
+  if (s >= 3600) return `${Math.floor(s / 3600)} Hours`;
+  return `${Math.floor(s / 60)} Minutes`;
 }
 
 export function formatDateID(unixSeconds: number): string {
-  return new Date(unixSeconds * 1000).toLocaleDateString("id-ID", {
+  return new Date(unixSeconds * 1000).toLocaleDateString("en-US", {
     day: "2-digit",
     month: "long",
     year: "numeric",

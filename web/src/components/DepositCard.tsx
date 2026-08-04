@@ -47,21 +47,21 @@ export function DepositCard() {
     <Card>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Label>Berwakaf</Label>
-          <h3 className="mt-2 font-serif text-2xl">Setor IDRX, pokok tetap utuh</h3>
+          <Label>Waqf Deposit</Label>
+          <h3 className="mt-2 font-serif text-2xl">Deposit IDRX, principal stays intact</h3>
         </div>
         <Coins className="h-8 w-8 shrink-0 text-tawf-gold" aria-hidden />
       </div>
 
       <p className="mt-3 text-tawf-muted">
-        Pokok Anda dikembalikan 100% setelah tenor dan masa unbonding selesai. Hanya hasil
-        (yield) di atas pokok yang disalurkan kepada Nadzir.
+        Your principal is returned 100% after the tenor and unbonding period are complete.
+        Only the yield above principal is distributed to the Nazir.
       </p>
 
       {/* Amount */}
       <div className="mt-8">
         <label htmlFor="amount" className="label-caps">
-          Jumlah Wakaf
+          Waqf Amount
         </label>
         <div className="mt-2 flex items-center gap-2 rounded-2xl border border-tawf-green/15 bg-tawf-sand/40 px-4 py-3">
           <span className="font-serif text-xl text-tawf-green">Rp</span>
@@ -76,17 +76,17 @@ export function DepositCard() {
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-tawf-muted">
           <span>
-            Saldo: <span className="tnum">{formatRp(wakif.idrxBalance, decimals)}</span>
+            Balance: <span className="tnum">{formatRp(wakif.idrxBalance, decimals)}</span>
           </span>
           {ethEstimate > 0n && (
-            <span className="tnum">≈ {formatRp(amount, decimals)} akan dikunci</span>
+            <span className="tnum">≈ {formatRp(amount, decimals)} will be locked</span>
           )}
         </div>
       </div>
 
       {/* Tenor */}
       <div className="mt-6">
-        <span className="label-caps">Pilih Tenor</span>
+        <span className="label-caps">Choose Tenor</span>
         <div className="mt-2 grid grid-cols-3 gap-2">
           {(stats.tenors ?? []).map((t, i) => (
             <button
@@ -106,9 +106,9 @@ export function DepositCard() {
         </div>
         <p className="mt-2 flex items-start gap-2 text-sm text-tawf-muted">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          Dana terkunci penuh selama tenor. Setelah itu masih ada masa unbonding{" "}
-          {stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "—"} sebelum pokok bisa
-          diklaim.
+          Funds are fully locked during the tenor. After that there is still an unbonding period{" "}
+          {stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "—"} before the principal
+          can be claimed.
         </p>
       </div>
 
@@ -119,7 +119,7 @@ export function DepositCard() {
           <ConnectButton.Custom>
             {({ openConnectModal }) => (
               <Button onClick={openConnectModal} className="w-full">
-                Hubungkan Wallet
+                Connect Wallet
               </Button>
             )}
           </ConnectButton.Custom>
@@ -127,16 +127,16 @@ export function DepositCard() {
           <Button
             onClick={() => switchChain({ chainId: activeChain.id })}
             busy={isSwitching}
-            busyLabel="Mengalihkan…"
+            busyLabel="Switching…"
             className="w-full"
           >
-            Pindah ke {activeChain.name}
+            Switch to {activeChain.name}
           </Button>
         ) : needsApproval ? (
           <>
             <Button
               busy={approve.busy}
-              busyLabel={approve.isConfirming ? "Menunggu konfirmasi…" : "Menyetujui…"}
+              busyLabel={approve.isConfirming ? "Waiting for confirmation…" : "Approving…"}
               disabled={amount === 0n || insufficient || belowMin}
               onClick={() =>
                 approve.execute({
@@ -149,16 +149,16 @@ export function DepositCard() {
               }
               className="w-full"
             >
-              Setujui {formatRp(amount, decimals)}
+              Approve {formatRp(amount, decimals)}
             </Button>
             <p className="text-center text-sm text-tawf-muted">
-              Langkah 1 dari 2 — memberi izin vault memindahkan IDRX sejumlah ini saja.
+              Step 1 of 2 — granting the vault permission to move exactly this amount of IDRX.
             </p>
           </>
         ) : (
           <Button
             busy={deposit.busy}
-            busyLabel={deposit.isConfirming ? "Menunggu konfirmasi…" : "Mengirim…"}
+            busyLabel={deposit.isConfirming ? "Waiting for confirmation…" : "Sending…"}
             disabled={amount === 0n || insufficient || belowMin}
             onClick={() =>
               deposit.execute({
@@ -170,7 +170,7 @@ export function DepositCard() {
             }
             className="w-full"
           >
-            Wakafkan {formatRp(amount, decimals)}
+            Waqf {formatRp(amount, decimals)}
           </Button>
         )}
 
@@ -178,22 +178,22 @@ export function DepositCard() {
           <Button
             variant="secondary"
             busy={faucet.busy}
-            busyLabel="Mengambil…"
+            busyLabel="Fetching…"
             onClick={() =>
               faucet.execute({ address: idrx, abi: MockIDRXAbi, functionName: "faucet" })
             }
             className="w-full"
           >
             <Droplets className="h-4 w-4" aria-hidden />
-            Ambil IDRX Testnet
+            Get Testnet IDRX
           </Button>
         )}
       </div>
 
-      {insufficient && <ErrorNote message="Saldo IDRX tidak mencukupi. Gunakan faucet di atas." />}
+      {insufficient && <ErrorNote message="IDRX balance is insufficient. Use the faucet above." />}
       {belowMin && (
         <ErrorNote
-          message={`Minimum setoran ${formatRp(stats.minDeposit, decimals)}.`}
+          message={`Minimum deposit ${formatRp(stats.minDeposit, decimals)}.`}
         />
       )}
       {faucet.error && <ErrorNote message={faucet.error} onDismiss={faucet.clearError} />}
@@ -202,15 +202,16 @@ export function DepositCard() {
 
       {deposit.justSucceeded && (
         <SuccessNote>
-          Wakaf tercatat on-chain. Sertifikat Ikrar Akad sudah dicetak ke wallet Anda.
+          Waqf recorded on-chain. The Akad Pledge Certificate has been minted to your wallet.
         </SuccessNote>
       )}
-      {approve.justSucceeded && <SuccessNote>Persetujuan berhasil. Lanjutkan ke wakaf.</SuccessNote>}
-      {faucet.justSucceeded && <SuccessNote>IDRX testnet diterima.</SuccessNote>}
+      {approve.justSucceeded && <SuccessNote>Approval successful. Continue to waqf deposit.</SuccessNote>}
+      {faucet.justSucceeded && <SuccessNote>Testnet IDRX received.</SuccessNote>}
 
       <p className="mt-6 border-t border-tawf-green/10 pt-4 text-xs text-tawf-muted">
-        Perlu diketahui: jumlah, tenor, dan alamat wallet Anda tercatat publik di blockchain, dan
-        alamat Anda ikut tergambar pada sertifikat akad. Ini bukan transaksi privat.
+        Please be aware: the amount, tenor, and your wallet address are publicly recorded on
+        the blockchain, and your address is also depicted on the akad certificate. This is not
+        a private transaction.
       </p>
     </Card>
   );

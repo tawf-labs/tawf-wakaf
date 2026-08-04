@@ -23,13 +23,13 @@ function Hero() {
 
       <div className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
         <motion.div {...fadeUp} className="max-w-2xl">
-          <Label>Staking Wakaf Ritel</Label>
+          <Label>Retail Waqf Staking</Label>
           <h1 className="mt-4 font-serif text-5xl leading-tight md:text-6xl">
-            Wakaf uang, tanpa kehilangan pokok.
+            Cash waqf, without losing your principal.
           </h1>
           <p className="mt-6 text-lg text-tawf-muted md:text-xl">
-            Setorkan IDRX, pilih tenor, dan biarkan hasil stakingnya mengalir kepada Nadzir.
-            Pokok Anda dikembalikan 100% setelah masa tenor dan unbonding selesai.
+            Deposit IDRX, choose a tenor, and let the staking yield flow to the Nazir.
+            Your principal is returned 100% after the tenor and unbonding period are complete.
           </p>
           <p className="mt-4 font-serif text-xl text-tawf-green">
             Not as promises. As on-chain reality.
@@ -37,10 +37,10 @@ function Hero() {
 
           <div className="mt-10 flex flex-wrap gap-4">
             <a href="#wakaf" className="btn-primary">
-              Mulai Berwakaf
+              Start Waqf
             </a>
             <a href="#risiko" className="btn-secondary">
-              Baca Risikonya
+              Read the Risks
             </a>
           </div>
         </motion.div>
@@ -48,17 +48,17 @@ function Hero() {
         <motion.div {...fadeUp} transition={{ duration: 1, delay: 0.15 }}>
           <Card className="grid grid-cols-2 gap-8">
             <Stat
-              label="Total Pokok Dikelola"
+              label="Total Principal Managed"
               value={formatRp(stats.totalPrincipal, stats.decimals, { compact: true })}
             />
             <Stat
-              label="Tersalurkan ke Nadzir"
+              label="Distributed to Nazir"
               value={formatRp(stats.totalYieldStripped, stats.decimals, { compact: true })}
               tone="good"
             />
-            <Stat label="NAV Portofolio" value={formatRp(stats.nav, stats.decimals, { compact: true })} />
+            <Stat label="Portfolio NAV" value={formatRp(stats.nav, stats.decimals, { compact: true })} />
             <Stat
-              label="Solvabilitas"
+              label="Solvency"
               value={bpsToPercent(stats.solvencyBps)}
               tone={(stats.solvencyBps ?? 0n) >= 10_000n ? "good" : "warn"}
             />
@@ -74,27 +74,27 @@ function Pillars() {
     {
       icon: Shield,
       label: "Hifzul Mal",
-      title: "Pokok dijaga",
-      body: "Hanya surplus di atas pokok ditambah buffer yang boleh keluar. Kontrak menolak panen apa pun yang akan menggerus bantalan itu.",
+      title: "Principal safeguarded",
+      body: "Only surplus above principal plus buffer may exit. The contract rejects any harvest that would erode that cushion.",
     },
     {
       icon: HeartHandshake,
       label: "Wakalah bil Istithmar",
-      title: "Akad tercatat",
-      body: "Setiap setoran mencetak sertifikat Ikrar Akad yang digambar sepenuhnya on-chain. Tenor pada sertifikat adalah tenor yang benar-benar dikunci kontrak.",
+      title: "Akad recorded",
+      body: "Every deposit mints an Akad Pledge certificate rendered entirely on-chain. The tenor on the certificate is the tenor actually locked by the contract.",
     },
     {
       icon: Landmark,
-      label: "Tanpa Perantara",
-      title: "Panen terbuka",
-      body: "Fungsi panen dapat dipanggil siapa saja dengan imbalan kecil. Tidak ada kunci admin di antara hasil staking dan dompet Nadzir.",
+      label: "Without Intermediaries",
+      title: "Open harvesting",
+      body: "The harvest function can be called by anyone for a small reward. There is no admin key between the staking yield and the Nazir's wallet.",
     },
   ];
 
   return (
     <Section tone="white">
       <motion.div {...fadeUp} className="mx-auto max-w-3xl text-center">
-        <Label>Prinsip</Label>
+        <Label>Principles</Label>
         <h2 className="mt-4 font-serif text-4xl">Baitul Maal, rebuilt for the digital age</h2>
       </motion.div>
 
@@ -124,42 +124,42 @@ function RiskNote() {
       <div id="risiko" className="mx-auto max-w-3xl">
         <div className="flex items-center gap-3">
           <AlertTriangle className="h-5 w-5 text-tawf-gold" aria-hidden />
-          <p className="label-caps">Catatan Risiko</p>
+          <p className="label-caps">Risk Notes</p>
         </div>
 
         <h2 className="mt-4 font-serif text-4xl text-white">
-          Yang tidak bisa dijamin oleh kode
+          What Code Cannot Guarantee
         </h2>
 
         <div className="mt-8 space-y-5 text-lg leading-relaxed">
           <p>
-            Pokok Anda dicatat dalam rupiah (IDRX), tetapi dijaminkan oleh aset yang bergerak
-            mengikuti harga ETH. Bila ETH melemah terhadap rupiah, nilai jaminan turun di bawah
-            pokok — dan tidak ada baris kode yang bisa menciptakan selisihnya.
+            Your principal is recorded in rupiah (IDRX), but is collateralized by assets
+            that move with the ETH price. If ETH weakens against rupiah, the collateral
+            value drops below principal — and no line of code can create the difference.
           </p>
           <p>
-            Yang kami bangun adalah cara agar risiko itu terlihat dan bisa ditanggulangi, bukan
-            dihilangkan: buffer {bpsToPercent(stats.bufferBps)} di atas pokok, cadangan stabil 30%
-            yang meredam penurunan, rasio solvabilitas yang ditampilkan apa adanya, dan{" "}
-            <code className="text-tawf-gold">topUp()</code> yang terbuka bagi siapa pun untuk
-            menutup defisit.
+            What we are building is a way for that risk to be visible and manageable, not
+            eliminated: a buffer {bpsToPercent(stats.bufferBps)} above principal, a 30%
+            stable reserve that cushions downturns, a solvency ratio displayed as-is, and{" "}
+            <code className="text-tawf-gold">topUp()</code> open to anyone to
+            cover the deficit.
           </p>
           <p className="text-white/50">
-            Ini adalah properti dari pilihan asetnya, bukan bug yang bisa diperbaiki di Solidity.
-            Selain itu: kontrak ini belum diaudit pihak ketiga, berjalan di testnet, dan seluruh
-            token di dalamnya tidak bernilai.
+            This is a property of the asset choice, not a bug that can be fixed in Solidity.
+            Additionally: this contract has not been third-party audited, runs on testnet,
+            and all tokens within it have no value.
           </p>
         </div>
 
         <div className="mt-10 grid grid-cols-2 gap-8 border-t border-white/10 pt-8">
           <div>
-            <p className="label-caps">Rasio Solvabilitas</p>
+            <p className="label-caps">Solvency Ratio</p>
             <p className="tnum mt-2 font-serif text-3xl text-white">
               {bpsToPercent(stats.solvencyBps)}
             </p>
           </div>
           <div>
-            <p className="label-caps">Defisit Tercatat</p>
+            <p className="label-caps">Recorded Deficit</p>
             <p className="tnum mt-2 font-serif text-3xl text-white">
               {formatRp(stats.deficit, stats.decimals)}
             </p>

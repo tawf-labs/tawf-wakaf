@@ -31,49 +31,49 @@ export function HarvestPanel() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <Label>Yield Stripping</Label>
-          <h3 className="mt-2 font-serif text-2xl">Panen hasil untuk Nadzir</h3>
+          <h3 className="mt-2 font-serif text-2xl">Harvest yield for Nazir</h3>
         </div>
         <Sparkles className="h-8 w-8 shrink-0 text-tawf-gold" aria-hidden />
       </div>
 
       <p className="mt-3 text-tawf-muted">
-        Fungsi ini terbuka untuk siapa saja — tidak ada admin, tidak ada keeper istimewa. Pemanggil
-        mendapat imbalan {bpsToPercent(stats.harvestBountyBps)} dari surplus yang dipanen, sisanya
-        langsung ke dompet Nadzir.
+        This function is open to anyone — no admin, no privileged keeper. The caller
+        receives a bounty of {bpsToPercent(stats.harvestBountyBps)} from the harvested surplus,
+        the remainder goes directly to the Nazir's wallet.
       </p>
 
       {stats.oracleStale && (
-        <ErrorNote message="Harga oracle kedaluwarsa, sehingga NAV tidak dapat dihitung. Segarkan oracle di bawah untuk melanjutkan." />
+        <ErrorNote message="Oracle price is stale, so NAV cannot be calculated. Refresh the oracle below to continue." />
       )}
 
       {/* NAV breakdown */}
       <div className="mt-8 grid grid-cols-2 gap-6">
-        <Stat label="NAV Portofolio" value={formatRp(stats.nav, stats.decimals)} />
+        <Stat label="Portfolio NAV" value={formatRp(stats.nav, stats.decimals)} />
         <Stat
-          label="Batas Panen"
+          label="Harvest Floor"
           value={formatRp(stats.harvestFloor, stats.decimals)}
-          hint={`pokok + buffer ${bpsToPercent(stats.bufferBps)}`}
+          hint={`principal + buffer ${bpsToPercent(stats.bufferBps)}`}
         />
         <Stat
-          label="Surplus Tersedia"
+          label="Available Surplus"
           value={formatRp(surplus, stats.decimals)}
           tone={surplus > 0n ? "good" : "default"}
-          hint={surplus > 0n ? "siap disalurkan" : "belum melampaui buffer"}
+          hint={surplus > 0n ? "ready for distribution" : "has not exceeded buffer"}
         />
         <Stat
-          label="Rasio Solvabilitas"
+          label="Solvency Ratio"
           value={bpsToPercent(stats.solvencyBps)}
           tone={solvent ? "good" : "warn"}
-          hint={solvent ? "pokok terjamin penuh" : "di bawah par — lihat catatan risiko"}
+          hint={solvent ? "principal fully guaranteed" : "below par — see risk notes"}
         />
       </div>
 
       {hasDeficit && (
         <ErrorNote
-          message={`Tercatat defisit ${formatRp(
+          message={`Recorded deficit ${formatRp(
             stats.deficit,
             stats.decimals,
-          )}. Ini muncul ketika nilai aset staking turun terhadap rupiah — risiko nilai tukar yang tidak bisa dihilangkan oleh kode. Siapa pun dapat menutupnya lewat topUp().`}
+          )}. This appears when staking asset value drops against rupiah — exchange rate risk that code cannot eliminate. Anyone can cover it via topUp().`}
         />
       )}
 
@@ -82,13 +82,13 @@ export function HarvestPanel() {
           className="w-full"
           disabled={!isConnected || surplus === 0n}
           busy={harvest.busy}
-          busyLabel={harvest.isConfirming ? "Menunggu konfirmasi…" : "Memanen…"}
+          busyLabel={harvest.isConfirming ? "Waiting for confirmation…" : "Harvesting…"}
           onClick={() =>
             harvest.execute({ address: vault, abi: SWRVaultAbi, functionName: "harvest" })
           }
         >
           <TrendingUp className="h-4 w-4" aria-hidden />
-          Panen &amp; Salurkan ke Nadzir
+          Harvest &amp; Distribute to Nazir
         </Button>
 
         <Button
@@ -96,25 +96,25 @@ export function HarvestPanel() {
           className="w-full"
           disabled={!isConnected}
           busy={poke.busy}
-          busyLabel="Menyegarkan…"
+          busyLabel="Refreshing…"
           onClick={() =>
             poke.execute({ address: feed, abi: MockAggregatorAbi, functionName: "poke" })
           }
         >
           <RefreshCw className="h-4 w-4" aria-hidden />
-          Segarkan Oracle
+          Refresh Oracle
         </Button>
       </div>
 
       {harvest.error && <ErrorNote message={harvest.error} onDismiss={harvest.clearError} />}
       {poke.error && <ErrorNote message={poke.error} onDismiss={poke.clearError} />}
-      {harvest.justSucceeded && <SuccessNote>Hasil berhasil disalurkan kepada Nadzir.</SuccessNote>}
+      {harvest.justSucceeded && <SuccessNote>Proceeds successfully distributed to the Nazir.</SuccessNote>}
 
       {/* Basket breakdown */}
       <div className="mt-8 border-t border-tawf-green/10 pt-6">
         <div className="flex items-center gap-2">
           <Network className="h-4 w-4 text-tawf-gold" aria-hidden />
-          <span className="label-caps">Diversifikasi Portofolio</span>
+          <span className="label-caps">Portfolio Diversification</span>
         </div>
 
         <div className="mt-4 space-y-3">
@@ -137,9 +137,9 @@ export function HarvestPanel() {
 
           <div className="flex items-center justify-between gap-4 border-t border-tawf-green/10 pt-3 text-sm">
             <div>
-              <p className="text-tawf-ink">Cadangan stabil IDRX</p>
+              <p className="text-tawf-ink">IDRX stable reserve</p>
               <p className="text-xs text-tawf-muted">
-                pengganti sleeve RWA syariah, sekaligus bantalan pertama saat pasar turun
+                substitutes for shariah RWA sleeve, and the first cushion when the market falls
               </p>
             </div>
             <p className="tnum shrink-0 text-tawf-muted">30% target</p>

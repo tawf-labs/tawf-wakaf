@@ -11,7 +11,7 @@ function RpcSettings() {
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label="Pengaturan RPC"
+        aria-label="RPC Settings"
         className="flex h-11 w-11 items-center justify-center rounded-full text-tawf-ink/60 transition-colors hover:text-tawf-green"
       >
         <Settings className="h-4 w-4" aria-hidden />
@@ -21,8 +21,8 @@ function RpcSettings() {
         <div className="absolute right-0 z-50 mt-2 w-80 rounded-2xl border border-tawf-green/10 bg-white p-5 shadow-lg">
           <p className="label-caps">RPC Endpoint</p>
           <p className="mt-2 text-sm text-tawf-muted">
-            Gunakan RPC Anda sendiri agar penyedia default tidak melihat seluruh aktivitas baca
-            aplikasi ini.
+            Use your own RPC so that the default provider cannot see all read
+            activity of this application.
           </p>
           <input
             value={value}
@@ -37,7 +37,7 @@ function RpcSettings() {
             }}
             className="btn-secondary mt-3 w-full"
           >
-            Simpan &amp; muat ulang
+            Save &amp; reload
           </button>
         </div>
       )}
@@ -56,16 +56,16 @@ export function Layout({ children }: { children: ReactNode }) {
 
           <nav className="hidden items-center gap-8 md:flex">
             <a href="#wakaf" className="nav-link">
-              Wakaf
+              Waqf
             </a>
             <a href="#portofolio" className="nav-link">
-              Portofolio
+              Portfolio
             </a>
             <a href="#nadzir" className="nav-link">
-              Nadzir
+              Nazir
             </a>
             <a href="#risiko" className="nav-link">
-              Risiko
+              Risks
             </a>
           </nav>
 
@@ -94,32 +94,32 @@ export function Layout({ children }: { children: ReactNode }) {
             </div>
 
             <div>
-              <p className="label-caps">Protokol</p>
+              <p className="label-caps">Protocol</p>
               <ul className="mt-4 space-y-2 text-sm">
                 <li>
                   <a href="#wakaf" className="transition-colors hover:text-tawf-gold">
-                    Berwakaf
+                    Waqf Deposit
                   </a>
                 </li>
                 <li>
                   <a href="#portofolio" className="transition-colors hover:text-tawf-gold">
-                    Portofolio
+                    Portfolio
                   </a>
                 </li>
                 <li>
                   <a href="#nadzir" className="transition-colors hover:text-tawf-gold">
-                    Portal Nadzir
+                    Nazir Portal
                   </a>
                 </li>
               </ul>
             </div>
 
             <div>
-              <p className="label-caps">Transparansi</p>
+              <p className="label-caps">Transparency</p>
               <ul className="mt-4 space-y-2 text-sm">
                 <li>
                   <a href="#risiko" className="transition-colors hover:text-tawf-gold">
-                    Catatan Risiko
+                    Risk Notes
                   </a>
                 </li>
                 <li>
@@ -129,17 +129,17 @@ export function Layout({ children }: { children: ReactNode }) {
                     rel="noreferrer noopener"
                     className="transition-colors hover:text-tawf-gold"
                   >
-                    Kode Sumber
+                    Source Code
                   </a>
                 </li>
               </ul>
             </div>
 
             <div>
-              <p className="label-caps">Jaringan</p>
+              <p className="label-caps">Network</p>
               <p className="mt-4 text-sm">{activeChain.name}</p>
               <p className="mt-2 text-sm">
-                Testnet — seluruh token adalah uang mainan tanpa nilai.
+                Testnet — all tokens are play money with no value.
               </p>
             </div>
           </div>

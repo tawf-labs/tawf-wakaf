@@ -5,40 +5,40 @@ import { BaseError, ContractFunctionRevertedError, UserRejectedRequestError } fr
 /// Without this a user sees `0x7939f424` and has no idea whether they did something wrong or the
 /// app is broken. Every entry here is a real revert the contract can produce.
 const MESSAGES: Record<string, string> = {
-  ZeroAmount: "Jumlah tidak boleh nol.",
-  ZeroAddress: "Alamat tidak valid.",
-  BelowMinimum: "Jumlah di bawah setoran minimum.",
-  InvalidTenorIndex: "Tenor yang dipilih tidak tersedia.",
-  NoSuchPosition: "Posisi wakaf tidak ditemukan.",
-  PositionNotActive: "Posisi ini sudah dalam masa unbonding atau sudah dicairkan.",
-  PositionNotUnbonding: "Ajukan penarikan terlebih dahulu sebelum klaim.",
-  TenorNotElapsed: "Masa tenor belum selesai. Dana masih terkunci.",
-  UnbondingNotElapsed: "Masa unbonding belum selesai. Mohon tunggu.",
-  NoSurplus: "Belum ada surplus hasil di atas pokok + buffer. Belum bisa dipanen.",
-  SurplusTooSmall: "Surplus masih terlalu kecil untuk dipanen.",
+  ZeroAmount: "Amount must not be zero.",
+  ZeroAddress: "Invalid address.",
+  BelowMinimum: "Amount is below the minimum deposit.",
+  InvalidTenorIndex: "Selected tenor is not available.",
+  NoSuchPosition: "Waqf position not found.",
+  PositionNotActive: "This position is already unbonding or has been claimed.",
+  PositionNotUnbonding: "Request a withdrawal before claiming.",
+  TenorNotElapsed: "Tenor period has not ended. Funds are still locked.",
+  UnbondingNotElapsed: "Unbonding period has not ended. Please wait.",
+  NoSurplus: "No yield surplus above principal + buffer yet. Nothing to harvest.",
+  SurplusTooSmall: "Surplus is still too small to harvest.",
   StaleOracle:
-    "Harga oracle sudah kedaluwarsa. Tekan 'Segarkan Oracle' lalu coba lagi.",
-  BadOraclePrice: "Harga oracle tidak valid.",
-  WeightsExceedTotal: "Total bobot alokasi melebihi 100%.",
-  LengthMismatch: "Jumlah adapter dan bobot tidak cocok.",
-  AmountTooLarge: "Jumlah terlalu besar.",
-  NoAdapters: "Vault belum dikonfigurasi dengan staking pool.",
-  EthTransferFailed: "Transfer ETH gagal.",
-  NotVault: "Hanya vault yang boleh memanggil fungsi ini.",
-  OnlyVault: "Hanya vault yang boleh mencetak sertifikat akad.",
-  VaultAlreadySet: "Vault sudah ditetapkan dan tidak bisa diubah.",
+    "Oracle price is stale. Press 'Refresh Oracle' and try again.",
+  BadOraclePrice: "Oracle price is invalid.",
+  WeightsExceedTotal: "Total allocation weight exceeds 100%.",
+  LengthMismatch: "Number of adapters and weights do not match.",
+  AmountTooLarge: "Amount too large.",
+  NoAdapters: "Vault has not been configured with a staking pool.",
+  EthTransferFailed: "ETH transfer failed.",
+  NotVault: "Only the vault may call this function.",
+  OnlyVault: "Only the vault may mint akad certificates.",
+  VaultAlreadySet: "Vault has already been set and cannot be changed.",
   InsufficientOutput:
-    "Slippage melebihi batas toleransi. Coba jumlah lebih kecil.",
+    "Slippage exceeds tolerance. Try a smaller amount.",
   InsufficientLiquidity:
-    "Likuiditas swap desk tidak cukup. Isi ulang lewat router.fundWithEth().",
-  UnsupportedPair: "Pasangan token tidak didukung oleh router.",
-  OwnableUnauthorizedAccount: "Hanya pemilik kontrak yang boleh melakukan ini.",
+    "Swap desk liquidity is insufficient. Refill via router.fundWithEth().",
+  UnsupportedPair: "Token pair is not supported by the router.",
+  OwnableUnauthorizedAccount: "Only the contract owner may do this.",
 };
 
 export function parseContractError(err: unknown): string {
   if (err instanceof BaseError) {
     if (err.walk((e) => e instanceof UserRejectedRequestError)) {
-      return "Transaksi dibatalkan di wallet.";
+      return "Transaction was cancelled in wallet.";
     }
 
     const reverted = err.walk((e) => e instanceof ContractFunctionRevertedError);
@@ -48,11 +48,11 @@ export function parseContractError(err: unknown): string {
       if (reverted.reason) {
         // Plain `require` strings, e.g. the non-transferable receipt guard.
         if (reverted.reason.includes("non-transferable")) {
-          return "wqIDRX tidak dapat dipindahtangankan — ia terikat pada posisi wakaf Anda.";
+          return "wqIDRX is non-transferable — it is bound to your waqf position.";
         }
         return reverted.reason;
       }
-      if (name) return `Transaksi ditolak kontrak (${name}).`;
+      if (name) return `Transaction rejected by contract (${name}).`;
     }
 
     if (err.shortMessage) return err.shortMessage;
@@ -62,5 +62,5 @@ export function parseContractError(err: unknown): string {
     return err.message.length > 160 ? `${err.message.slice(0, 160)}…` : err.message;
   }
 
-  return "Terjadi kesalahan yang tidak diketahui.";
+  return "An unknown error occurred.";
 }

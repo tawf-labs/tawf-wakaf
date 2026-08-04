@@ -55,7 +55,7 @@ export function NadzirView() {
         );
         setLoadError(null);
       } catch {
-        if (!cancelled) setLoadError("Riwayat tidak dapat dimuat dari RPC ini.");
+        if (!cancelled) setLoadError("History could not be loaded from this RPC.");
       }
     })();
 
@@ -68,26 +68,26 @@ export function NadzirView() {
     <Card sand>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Label>Portal Nadzir</Label>
-          <h3 className="mt-2 font-serif text-2xl">Penerimaan dana wakaf</h3>
+          <Label>Nazir Portal</Label>
+          <h3 className="mt-2 font-serif text-2xl">Waqf fund distribution</h3>
         </div>
         <Landmark className="h-8 w-8 shrink-0 text-tawf-gold" aria-hidden />
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Stat
-          label="Total Tersalurkan"
+          label="Total Distributed"
           value={formatRp(stats.totalYieldStripped, stats.decimals)}
           tone="good"
-          hint="akumulasi seluruh panen"
+          hint="accumulation of all harvests"
         />
         <div>
-          <Label>Dompet Nadzir</Label>
+          <Label>Nazir Wallet</Label>
           <div className="mt-3">
             <AddressChip address={stats.nadzir} />
           </div>
           <p className="mt-2 text-sm text-tawf-muted">
-            Hasil dikirim langsung ke alamat ini oleh kontrak, tanpa perantara.
+            Proceeds are sent directly to this address by the contract, without intermediaries.
           </p>
         </div>
       </div>
@@ -95,24 +95,24 @@ export function NadzirView() {
       <div className="mt-8 border-t border-tawf-green/10 pt-6">
         <div className="flex items-center gap-2">
           <HeartHandshake className="h-4 w-4 text-tawf-gold" aria-hidden />
-          <span className="label-caps">Riwayat Penyaluran</span>
+          <span className="label-caps">Distribution History</span>
         </div>
 
         {loadError ? (
           <p className="mt-4 text-sm text-tawf-muted">{loadError}</p>
         ) : records.length === 0 ? (
           <p className="mt-4 text-sm text-tawf-muted">
-            Belum ada penyaluran. Hasil akan muncul di sini setelah panen pertama.
+            No distributions yet. Proceeds will appear here after the first harvest.
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[420px] text-left text-sm">
               <thead>
                 <tr className="text-tawf-muted">
-                  <th className="pb-2 font-normal">Blok</th>
-                  <th className="pb-2 font-normal">Ke Nadzir</th>
-                  <th className="pb-2 font-normal">Imbalan</th>
-                  <th className="pb-2 font-normal">Pemanggil</th>
+                  <th className="pb-2 font-normal">Block</th>
+                  <th className="pb-2 font-normal">To Nazir</th>
+                  <th className="pb-2 font-normal">Bounty</th>
+                  <th className="pb-2 font-normal">Caller</th>
                 </tr>
               </thead>
               <tbody>

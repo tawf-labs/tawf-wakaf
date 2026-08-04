@@ -49,12 +49,12 @@ function PositionRow({
   const claimable = now >= claimableAt;
 
   const statusChip = isClaimed
-    ? { text: "Selesai", cls: "bg-tawf-green/10 text-tawf-green" }
+    ? { text: "Complete", cls: "bg-tawf-green/10 text-tawf-green" }
     : isUnbonding
       ? { text: "Unbonding", cls: "bg-amber-100 text-amber-800" }
       : matured
-        ? { text: "Jatuh Tempo", cls: "bg-tawf-gold/20 text-tawf-green" }
-        : { text: "Terkunci", cls: "bg-tawf-green/5 text-tawf-muted" };
+        ? { text: "Due", cls: "bg-tawf-gold/20 text-tawf-green" }
+        : { text: "Locked", cls: "bg-tawf-green/5 text-tawf-muted" };
 
   return (
     <div className="rounded-2xl border border-tawf-green/10 bg-white p-6">
@@ -78,7 +78,7 @@ function PositionRow({
           className="inline-flex items-center gap-2 text-sm text-tawf-muted transition-colors hover:text-tawf-green"
         >
           <FileText className="h-4 w-4" aria-hidden />
-          {showAkad ? "Sembunyikan" : "Lihat"} Ikrar Akad
+          {showAkad ? "Hide" : "View"} Ikrar Akad
         </button>
       </div>
 
@@ -88,10 +88,10 @@ function PositionRow({
           <span className="inline-flex items-center gap-2 text-tawf-muted">
             <Clock className="h-4 w-4" aria-hidden />
             {matured ? (
-              <span className="text-tawf-green">Tenor selesai — siap ditarik</span>
+              <span className="text-tawf-green">Tenor complete — ready to withdraw</span>
             ) : (
               <>
-                Sisa tenor:{" "}
+                Remaining tenor:{" "}
                 <span className="tnum text-tawf-ink">{formatCountdown(maturesAt - now)}</span>
               </>
             )}
@@ -101,10 +101,10 @@ function PositionRow({
           <span className="inline-flex items-center gap-2 text-tawf-muted">
             <Hourglass className="h-4 w-4" aria-hidden />
             {claimable ? (
-              <span className="text-tawf-green">Unbonding selesai — pokok siap diklaim</span>
+              <span className="text-tawf-green">Unbonding complete — principal ready to claim</span>
             ) : (
               <>
-                Sisa unbonding:{" "}
+                Remaining unbonding:{" "}
                 <span className="tnum text-tawf-ink">{formatCountdown(claimableAt - now)}</span>
               </>
             )}
@@ -112,7 +112,7 @@ function PositionRow({
         )}
         {isUnbonding && (
           <span className="tnum text-tawf-muted">
-            Dicadangkan: {formatRp(position.reserved, decimals)}
+            Reserved: {formatRp(position.reserved, decimals)}
           </span>
         )}
       </div>
@@ -125,7 +125,7 @@ function PositionRow({
               variant="secondary"
               disabled={!matured}
               busy={unstake.busy}
-              busyLabel={unstake.isConfirming ? "Menunggu konfirmasi…" : "Mengajukan…"}
+              busyLabel={unstake.isConfirming ? "Waiting for confirmation…" : "Submitting…"}
               onClick={() =>
                 unstake.execute({
                   address: vault,
@@ -135,13 +135,13 @@ function PositionRow({
                 })
               }
             >
-              Ajukan Penarikan
+              Request Withdrawal
             </Button>
           ) : (
             <Button
               disabled={!claimable}
               busy={claim.busy}
-              busyLabel={claim.isConfirming ? "Menunggu konfirmasi…" : "Mencairkan…"}
+              busyLabel={claim.isConfirming ? "Waiting for confirmation…" : "Claiming…"}
               onClick={() =>
                 claim.execute({
                   address: vault,
@@ -152,7 +152,7 @@ function PositionRow({
               }
             >
               <Wallet className="h-4 w-4" aria-hidden />
-              Klaim Pokok
+              Claim Principal
             </Button>
           )}
         </div>
@@ -163,10 +163,10 @@ function PositionRow({
 
       {position.reserved < position.principal && isUnbonding && (
         <ErrorNote
-          message={`Dana yang berhasil dicadangkan kurang dari pokok (${formatRp(
+          message={`Funds successfully reserved are less than the principal (${formatRp(
             position.principal - position.reserved,
             decimals,
-          )} kurang). Ini terjadi ketika nilai aset staking turun terhadap rupiah. Kekurangan tercatat sebagai defisit dan dapat ditutup lewat topUp().`}
+          )} short). This happens when staking asset value drops against rupiah. The shortfall is recorded as a deficit and can be covered via topUp().`}
         />
       )}
 
@@ -192,9 +192,9 @@ export function PositionList() {
   if (!isConnected) {
     return (
       <Card sand>
-        <Label>Posisi Wakaf</Label>
+        <Label>Waqf Position</Label>
         <p className="mt-3 text-tawf-muted">
-          Hubungkan wallet untuk melihat posisi wakaf dan sertifikat akad Anda.
+          Connect your wallet to view your waqf positions and akad certificates.
         </p>
       </Card>
     );
@@ -207,21 +207,21 @@ export function PositionList() {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Label>Posisi Wakaf Anda</Label>
+          <Label>Your Waqf Positions</Label>
           <h3 className="mt-2 font-serif text-3xl">
             {formatRp(wakif.wqBalance, stats.decimals)}{" "}
             <span className="text-lg text-tawf-muted">wqIDRX</span>
           </h3>
         </div>
         <p className="text-sm text-tawf-muted">
-          {active.length} aktif · {settled.length} selesai
+          {active.length} active · {settled.length} complete
         </p>
       </div>
 
       {wakif.positions.length === 0 ? (
         <Card sand className="mt-6">
           <p className="text-tawf-muted">
-            Belum ada posisi wakaf. Mulai dengan menyetorkan IDRX di samping.
+            No waqf positions yet. Start by depositing IDRX next door.
           </p>
         </Card>
       ) : (
