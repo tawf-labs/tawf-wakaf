@@ -8,16 +8,16 @@ export const CHAIN_ID = addresses.chainId;
 
 export const activeChain = CHAIN_ID === sepolia.id ? sepolia : foundry;
 
-/// A user-configurable RPC beats a hardcoded one: it keeps the default provider from seeing
-/// every read this app makes, and it gives a fallback if that provider blocks or rate-limits.
+/// Pointing the app at your own RPC keeps the default provider from seeing every read it makes,
+/// and gives a fallback if that provider blocks or rate-limits. It had a settings panel in the
+/// header, which put a piece of node configuration in front of everyone to serve the few who
+/// want it. The override still works, set from the console and documented in the README:
+///
+///   localStorage.setItem("swr.rpcUrl", "https://your-node")
 const STORED_RPC_KEY = "swr.rpcUrl";
-export const storedRpc = () => localStorage.getItem(STORED_RPC_KEY) ?? "";
-export const setStoredRpc = (url: string) => {
-  if (url) localStorage.setItem(STORED_RPC_KEY, url);
-  else localStorage.removeItem(STORED_RPC_KEY);
-};
 
-const rpcOverride = typeof window !== "undefined" ? storedRpc() : "";
+const rpcOverride =
+  typeof window !== "undefined" ? (localStorage.getItem(STORED_RPC_KEY) ?? "") : "";
 
 export const wagmiConfig = getDefaultConfig({
   appName: "Tawf Cash Waqf",

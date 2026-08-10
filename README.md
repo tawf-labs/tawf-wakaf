@@ -249,7 +249,12 @@ third-party requests. Frontend builds with `base: "./"` so it works from IPFS or
 
 **Privacy.** Every deposit amount, tenor and wallet address is public, and the akad NFT renders the
 waqif's address into a public SVG. The deposit card states this before a user signs, rather than
-after.
+after. Reads go through the default provider unless you point the app at your own node, which is
+a console setting rather than a panel in the header:
+
+```js
+localStorage.setItem("swr.rpcUrl", "https://your-node");  // then reload
+```
 
 **Security.** No proxy, no upgradeability, so there is nothing to trust an admin not to change. The owner
 cannot move principal, touch `reservedForClaims`, or block `claim()`. Tenor and unbonding period

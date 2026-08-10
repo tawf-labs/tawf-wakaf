@@ -1,8 +1,8 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { ArrowRight, Menu, Settings, X } from "lucide-react";
-import { activeChain, setStoredRpc, storedRpc } from "../lib/config";
+import { ArrowRight, Menu, X } from "lucide-react";
+import { activeChain } from "../lib/config";
 import { NetworkBanner } from "./NetworkBanner";
 import tawfLogo from "../assets/tawf-logo.png";
 
@@ -25,48 +25,6 @@ const MARKETING_NAV = [
   { to: "/#risks", label: "Risks" },
   { to: "/glossary", label: "Glossary" },
 ] as const;
-
-function RpcSettings() {
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(storedRpc());
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label="RPC Settings"
-        className="flex h-11 w-11 items-center justify-center rounded-full text-tawf-ink/60 transition-colors hover:text-tawf-green"
-      >
-        <Settings className="h-4 w-4" aria-hidden />
-      </button>
-
-      {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 rounded-2xl border border-tawf-green/10 bg-white p-5 shadow-lg">
-          <p className="label-caps">RPC Endpoint</p>
-          <p className="mt-2 text-sm text-tawf-muted">
-            Use your own RPC so that the default provider cannot see all read
-            activity of this application.
-          </p>
-          <input
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={activeChain.rpcUrls.default.http[0]}
-            className="mt-3 w-full rounded-full border border-tawf-green/15 bg-tawf-sand/40 px-4 py-2 text-sm outline-none"
-          />
-          <button
-            onClick={() => {
-              setStoredRpc(value.trim());
-              location.reload();
-            }}
-            className="btn-secondary mt-3 w-full"
-          >
-            Save &amp; reload
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /// "Cash Waqf" rather than the SWR acronym. A visitor arriving at waqf.tawf.foundation should be
 /// told what this is in words they already know. The internal product code named the thing for us,
@@ -119,8 +77,17 @@ export function Layout({ children }: { children: ReactNode }) {
             )}
           </nav>
 
+          {/* One call to action per context. The landing page asks only that you come in;
+              connecting is deferred to the point where a signature is actually needed, which is
+              the deposit card's own connect step. Offering both here asked for two decisions to
+              do one thing, and asked for the wallet before there was anything to sign. */}
           <div className="flex items-center gap-2">
-            {!isApp && (
+            {isApp ? (
+              <ConnectButton
+                showBalance={false}
+                accountStatus={{ smallScreen: "avatar", largeScreen: "address" }}
+              />
+            ) : (
               <Link
                 to="/earn"
                 className="hidden items-center gap-2 rounded-full bg-tawf-green px-6 py-2.5 text-sm uppercase tracking-widest text-tawf-sand transition-colors hover:bg-tawf-green-light sm:inline-flex"
@@ -130,11 +97,6 @@ export function Layout({ children }: { children: ReactNode }) {
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             )}
-            <RpcSettings />
-            <ConnectButton
-              showBalance={false}
-              accountStatus={{ smallScreen: "avatar", largeScreen: "address" }}
-            />
             <button
               onClick={() => setMenuOpen((v) => !v)}
               aria-label={menuOpen ? "Close menu" : "Open menu"}
