@@ -49,7 +49,7 @@ contract MockAggregator is IAggregatorV3 {
     }
 
     /// @notice TESTNET: refresh the timestamp without changing the price. Permissionless on
-    ///         purpose — a real Chainlink feed is kept alive by its own node operators, and
+    ///         purpose. A real Chainlink feed is kept alive by its own node operators, and
     ///         without an equivalent the whole demo would freeze the first time this mock went
     ///         stale, with no way for a visitor to revive it.
     function poke() external {

@@ -9,7 +9,7 @@ import {ISwapRouter, IWETH} from "../interfaces/ISwapRouter.sol";
 
 /// @notice Shared machinery for every LST venue in the basket.
 ///
-/// The ETH leg is identical across venues — stake ETH, hold a non-rebasing wrapper, exit
+/// The ETH leg is identical across venues: stake ETH, hold a non-rebasing wrapper, exit
 /// through a DEX because LST withdrawal queues take days. Only three things differ per
 /// protocol, so only those three are abstract: how to stake, how to unwrap, and how to read
 /// the rate.
@@ -52,11 +52,11 @@ abstract contract BaseLSTAdapter is IYieldAdapter, ReentrancyGuard {
     /// @dev Unwrap the non-rebasing token back to its rebasing underlying.
     function _unwrap(uint256 lstAmount) internal virtual returns (uint256 underlyingOut);
 
-    /// @dev The rebasing underlying (stETH, eETH) — what unwrapping yields.
+    /// @dev The rebasing underlying (stETH, eETH), which is what unwrapping yields.
     function _underlying() internal view virtual returns (address);
 
     /// @dev Underlying per 1e18 of the wrapper. wstETH calls it `stEthPerToken`,
-    ///      weETH calls it `getRate`; same number, different name.
+    ///      weETH calls it `getRate`. Same number, different name.
     function _ratePerToken() internal view virtual returns (uint256);
 
     // --- IYieldAdapter ----------------------------------------------------
@@ -72,7 +72,7 @@ abstract contract BaseLSTAdapter is IYieldAdapter, ReentrancyGuard {
 
         uint256 underlyingAmount = _unwrap(lstAmount);
 
-        // Exit via DEX. `minEthOut` comes from the vault and is never 0 —
+        // Exit via DEX. `minEthOut` comes from the vault and is never 0,
         // an unbounded swap is a free sandwich (`security/SKILL.md`, MEV).
         address underlyingToken = _underlying();
         IERC20(underlyingToken).forceApprove(address(router), underlyingAmount);

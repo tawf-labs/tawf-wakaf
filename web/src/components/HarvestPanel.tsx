@@ -37,7 +37,7 @@ export function HarvestPanel() {
       </div>
 
       <p className="mt-3 text-tawf-muted">
-        This function is open to anyone — no admin, no privileged keeper. The caller
+        This function is open to anyone, with no admin and no privileged keeper. The caller
         receives a bounty of {bpsToPercent(stats.harvestBountyBps)} from the harvested surplus,
         the remainder goes directly to the Nazir's wallet.
         {(stats.perpetualPrincipal ?? 0n) > 0n && (
@@ -71,7 +71,7 @@ export function HarvestPanel() {
           label="Solvency Ratio"
           value={bpsToPercent(stats.solvencyBps)}
           tone={solvent ? "good" : "warn"}
-          hint={solvent ? "principal fully guaranteed" : "below par — see risk notes"}
+          hint={solvent ? "principal fully guaranteed" : "below par, see risk notes"}
         />
       </div>
 
@@ -96,7 +96,7 @@ export function HarvestPanel() {
           message={`Recorded deficit ${formatRp(
             stats.deficit,
             stats.decimals,
-          )}. This appears when staking asset value drops against rupiah — exchange rate risk that code cannot eliminate. Anyone can cover it via topUp().`}
+          )}. This appears when staking asset value drops against rupiah. Exchange rate risk that code cannot eliminate. Anyone can cover it via topUp().`}
         />
       )}
 

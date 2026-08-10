@@ -21,7 +21,7 @@ export function DepositCard() {
 
   const [amountInput, setAmountInput] = useState("100000");
   const [tenorIndex, setTenorIndex] = useState(0);
-  /// Perpetual is the default. Waqf in its classical form is perpetual and irrevocable; the
+  /// Perpetual is the default. Waqf in its classical form is perpetual and irrevocable, and the
   /// fixed-tenor product is the accommodation, not the other way round.
   const [perpetual, setPerpetual] = useState(true);
 
@@ -58,7 +58,7 @@ export function DepositCard() {
 
       <p className="mt-3 text-tawf-muted">
         {perpetual
-          ? "A perpetual endowment. The corpus is given permanently — it is never returned to you — and is preserved on-chain so its yield can reach the Nazir indefinitely."
+          ? "A perpetual endowment. The corpus is given permanently, is never returned to you, and is preserved on-chain so its yield can reach the Nazir indefinitely."
           : "Your principal is returned 100% after the tenor and unbonding period are complete. Only the yield above principal is distributed to the Nazir."}
       </p>
 
@@ -80,7 +80,7 @@ export function DepositCard() {
               Perpetual
             </span>
             <span className={`mt-1 block text-xs ${perpetual ? "text-tawf-sand/70" : "text-tawf-muted"}`}>
-              Waqf mu'abbad — irrevocable, never withdrawn
+              Waqf mu'abbad. Irrevocable, never withdrawn
             </span>
           </button>
 
@@ -98,7 +98,7 @@ export function DepositCard() {
               Fixed Tenor
             </span>
             <span className={`mt-1 block text-xs ${!perpetual ? "text-tawf-sand/70" : "text-tawf-muted"}`}>
-              Waqf mu'aqqat — principal returned after the term
+              Waqf mu'aqqat. Principal returned after the term
             </span>
           </button>
         </div>
@@ -130,14 +130,14 @@ export function DepositCard() {
         </div>
       </div>
 
-      {/* Tenor — only meaningful for the fixed-term akad. */}
+      {/* Tenor, only meaningful for the fixed-term akad. */}
       {perpetual ? (
         <div className="mt-6 rounded-2xl border border-tawf-green/15 bg-tawf-sand/40 p-5">
           <p className="flex items-start gap-2 text-sm text-tawf-muted">
             <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             <span>
               There is no tenor and no unbonding period, because there is no withdrawal. The
-              contract has no function that returns a perpetual corpus — not to you, and not to the
+              contract has no function that returns a perpetual corpus. Not to you, and not to the
               owner.{" "}
               <span className="text-tawf-green">
                 {stats.compoundBps !== undefined
@@ -171,7 +171,7 @@ export function DepositCard() {
           <p className="mt-2 flex items-start gap-2 text-sm text-tawf-muted">
             <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             Funds are fully locked during the tenor. After that there is still an unbonding period{" "}
-            {stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "—"} before the principal
+            {stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "n/a"} before the principal
             can be claimed.
           </p>
         </div>
@@ -208,7 +208,7 @@ export function DepositCard() {
                   address: idrx,
                   abi: MockIDRXAbi,
                   functionName: "approve",
-                  // Exactly what is needed — never an unlimited approval.
+                  // Exactly what is needed, never an unlimited approval.
                   args: [vault, amount],
                 })
               }
@@ -217,7 +217,7 @@ export function DepositCard() {
               Approve {formatRp(amount, decimals)}
             </Button>
             <p className="text-center text-sm text-tawf-muted">
-              Step 1 of 2 — granting the vault permission to move exactly this amount of IDRX.
+              Step 1 of 2. Granting the vault permission to move exactly this amount of IDRX.
             </p>
           </>
         ) : (
@@ -286,8 +286,8 @@ export function DepositCard() {
 
       {perpetual && (
         <p className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          This cannot be undone. Once confirmed there is no function on this contract — for you,
-          for the Nazir, or for the owner — that returns a perpetual corpus. Choose Fixed Tenor if
+          This cannot be undone. Once confirmed there is no function on this contract, not for you,
+          for the Nazir, or for the owner, that returns a perpetual corpus. Choose Fixed Tenor if
           you may want the money back.
         </p>
       )}

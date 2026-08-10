@@ -10,7 +10,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 /// and a 2-decimal asset paired with 18-decimal ETH is a far harsher test of the vault's
 /// normalisation math than another 18-decimal token would be.
 ///
-/// The real IDRX decimals MUST be verified against its live deployment before mainnet —
+/// The real IDRX decimals MUST be verified against its live deployment before mainnet.
 /// nothing in this repo should be taken as authority on that.
 ///
 /// NEVER deploy to mainnet.
@@ -30,7 +30,7 @@ contract MockIDRX is ERC20 {
         return _decimals;
     }
 
-    /// @notice Open faucet — anyone, any time. It is play money on a testnet.
+    /// @notice Open faucet, anyone and any time. It is play money on a testnet.
     function faucet() external {
         uint256 amount = FAUCET_AMOUNT_WHOLE * (10 ** _decimals);
         _mint(msg.sender, amount);

@@ -229,7 +229,7 @@ contract SWRVaultTest is SWRBase {
 
         uint256 nazirBefore = idrx.balanceOf(nazir);
 
-        // `keeper` is nobody special — no role, no ownership.
+        // `keeper` is nobody special: no role, no ownership.
         vm.prank(keeper);
         (uint256 toNazir, uint256 bounty) = vault.harvest();
 
@@ -260,7 +260,7 @@ contract SWRVaultTest is SWRBase {
     }
 
     /// @notice Regression: unwinding costs two swap legs, and that cost must fall on the yield
-    ///         being distributed — never on the buffer backing principal. Sizing the payout from
+    ///         being distributed, never on the buffer backing principal. Sizing the payout from
     ///         the pre-unwind NAV left the vault BELOW its own floor after every harvest, quietly
     ///         funding the nazir out of the waqif's cushion. Only shows up with a non-zero spread,
     ///         which is why the zero-spread invariant suite could not see it.
@@ -277,7 +277,7 @@ contract SWRVaultTest is SWRBase {
     }
 
     function test_HarvestCostIsBorneByYieldNotByPrincipal() public {
-        _setSpread(100); // 1% — an expensive unwind, to make the effect unmissable
+        _setSpread(100); // 1%, an expensive unwind, to make the effect unmissable
         uint256 amount = idr(10_000_000);
         _deposit(alice, amount, 2);
         _accrueYield(5_000);
@@ -287,7 +287,7 @@ contract SWRVaultTest is SWRBase {
         vm.prank(keeper);
         (uint256 toNazir, uint256 bounty) = vault.harvest();
 
-        // Expensive swaps shrink what the nazir receives; they must not shrink the backing.
+        // Expensive swaps shrink what the nazir receives. They must not shrink the backing.
         assertGt(toNazir + bounty, 0, "some yield still reached the nazir");
         assertGe(vault.totalNavIDRX(), floorBefore, "principal + buffer intact after a costly unwind");
     }
@@ -295,7 +295,7 @@ contract SWRVaultTest is SWRBase {
     function test_RevertWhen_HarvestingWithNoSurplus() public {
         _setSpread(0);
         _deposit(alice, idr(1_000_000), 0);
-        // No yield accrued — NAV sits at principal, below principal + 10% buffer.
+        // No yield accrued, so NAV sits at principal, below principal + 10% buffer.
 
         vm.prank(keeper);
         vm.expectRevert(
@@ -349,7 +349,7 @@ contract SWRVaultTest is SWRBase {
         _deposit(alice, idr(1_000_000), 0);
 
         // Freeze the feed and jump past the staleness window. A dead feed keeps returning its
-        // last answer forever — refusing to price against it is the entire defence.
+        // last answer forever, and refusing to price against it is the entire defence.
         vm.warp(block.timestamp + 4 hours);
 
         vm.expectRevert();
@@ -373,7 +373,7 @@ contract SWRVaultTest is SWRBase {
         // Now let the oracle die completely.
         vm.warp(block.timestamp + UNBONDING + 10 hours);
 
-        // Claim pays from the earmarked reserve and needs no price at all — a waqif's exit does
+        // Claim pays from the earmarked reserve and needs no price at all, so a waqif's exit does
         // not depend on the oracle, the keeper, or the team.
         vm.prank(alice);
         uint256 payout = vault.claim(posId);
@@ -455,7 +455,7 @@ contract SWRVaultTest is SWRBase {
         assertGt(vault.deficit(), 0, "shortfall surfaced");
         assertLt(vault.solvencyRatioBps(), 10_000, "under-collateralised, and says so");
 
-        // A takaful reserve — or anyone — can make the waqif whole.
+        // A takaful reserve, or anyone at all, can make the waqif whole.
         uint256 shortfall = vault.deficit();
         idrx.mint(address(this), shortfall);
         idrx.approve(address(vault), shortfall);

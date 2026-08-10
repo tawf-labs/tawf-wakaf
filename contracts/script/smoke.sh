@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # End-to-end smoke test against a live SWR deployment.
 #
-# Walks the whole waqif lifecycle — faucet, deposit, yield, permissionless harvest, unstake,
-# claim — and asserts the two properties that matter: a harvest never dips the vault below its
+# Walks the whole waqif lifecycle: faucet, deposit, yield, permissionless harvest, unstake,
+# claim. It asserts the two properties that matter: a harvest never dips the vault below its
 # floor, and the waqif gets their principal back.
 #
 # Reads addresses from web/src/generated/addresses.json, so it works against anvil or Sepolia.
 #
 #   ./script/smoke.sh <rpc-url> <waqif-private-key> <keeper-private-key>
 #
-# On Sepolia the tenor and unbonding waits are real wall-clock minutes; on anvil the script
+# On Sepolia the tenor and unbonding waits are real wall-clock minutes. On anvil the script
 # fast-forwards with evm_increaseTime.
 
 set -euo pipefail

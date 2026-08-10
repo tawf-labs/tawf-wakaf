@@ -13,8 +13,8 @@ import {IAggregatorV3} from "../interfaces/IAggregatorV3.sol";
 ///   2. stETH/eETH -> WETH   priced 1:1, since a rebasing LST tracks ETH by construction
 ///
 /// Route 2 is what lets one adapter implementation work everywhere. Real Lido cannot be
-/// exited instantly — the withdrawal queue takes days, and on Sepolia it is paused outright
-/// (`isPaused: true`, verified) — so production adapters exit through a DEX instead. Modelling
+/// exited instantly. The withdrawal queue takes days, and on Sepolia it is paused outright
+/// (`isPaused: true`, verified), so production adapters exit through a DEX instead. Modelling
 /// that as a swap here keeps the mainnet and testnet call paths identical.
 ///
 /// A pre-funded reserve, not an AMM: no price impact of its own, so tests isolate the vault's

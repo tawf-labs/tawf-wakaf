@@ -13,7 +13,7 @@ const MESSAGES: Record<string, string> = {
   PositionNotActive: "This position is already unbonding or has been claimed.",
   PositionNotUnbonding: "Request a withdrawal before claiming.",
   PerpetualPosition:
-    "This is a perpetual waqf (waqf mu'abbad). The corpus is endowed permanently and can never be withdrawn — by anyone, including the contract owner.",
+    "This is a perpetual waqf (waqf mu'abbad). The corpus is endowed permanently and can never be withdrawn by anyone, including the contract owner.",
   CompoundTooHigh: "Endowment share exceeds the maximum the contract permits.",
   TenorNotElapsed: "Tenor period has not ended. Funds are still locked.",
   UnbondingNotElapsed: "Unbonding period has not ended. Please wait.",
@@ -51,7 +51,7 @@ export function parseContractError(err: unknown): string {
       if (reverted.reason) {
         // Plain `require` strings, e.g. the non-transferable receipt guard.
         if (reverted.reason.includes("non-transferable")) {
-          return "wqIDRX is non-transferable — it is bound to your waqf position.";
+          return "wqIDRX is non-transferable. It is bound to your waqf position.";
         }
         return reverted.reason;
       }

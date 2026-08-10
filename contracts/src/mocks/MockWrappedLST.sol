@@ -8,7 +8,7 @@ import {MockRebasingLST} from "./MockRebasingLST.sol";
 
 /// @notice TESTNET ONLY. Non-rebasing wrapper over a rebasing LST.
 ///
-/// The wrapped balance IS the share count, so it never changes; all yield shows up as
+/// The wrapped balance IS the share count, so it never changes, and all yield shows up as
 /// growth in the share->underlying rate. That is precisely why a vault should hold the
 /// wrapped form: `security/SKILL.md` warns that rebasing balances change without any
 /// Transfer event, silently desyncing internal accounting.
@@ -66,7 +66,7 @@ contract MockWstETH is MockWrappedLST {
 }
 
 /// @notice TESTNET ONLY. ether.fi weETH ABI. Mainnet equivalent: 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee.
-/// Same mechanism as wstETH, different function names — the reason each LST gets its own adapter.
+/// Same mechanism as wstETH, different function names, which is the reason each LST gets its own adapter.
 contract MockWeETH is MockWrappedLST {
     constructor(MockRebasingLST _eETH) MockWrappedLST("Wrapped eETH", "weETH", _eETH) {}
 

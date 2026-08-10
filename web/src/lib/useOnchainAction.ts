@@ -5,7 +5,7 @@ import { parseContractError } from "./errors";
 
 type Phase = "idle" | "submitting" | "confirming" | "cooldown";
 
-/// One button, one instance of this hook. Never a shared `isLoading` across actions — that is
+/// One button, one instance of this hook. Never a shared `isLoading` across actions, which is
 /// what produces buttons showing the wrong label and users double-submitting.
 ///
 /// The subtle part is the two gaps that raw wagmi leaves open:
@@ -16,7 +16,7 @@ type Phase = "idle" | "submitting" | "confirming" | "cooldown";
 ///      are still stale for a moment.
 ///
 /// `submitting` covers the first, `cooldown` the second. Both keep the button disabled, and the
-/// `finally` is mandatory — without it a rejected transaction locks the button forever.
+/// `finally` is mandatory, because without it a rejected transaction locks the button forever.
 export function useOnchainAction(onConfirmed?: () => void) {
   const { writeContractAsync } = useWriteContract();
   const client = usePublicClient();
@@ -35,7 +35,7 @@ export function useOnchainAction(onConfirmed?: () => void) {
   useEffect(() => {
     if (!isSuccess || !hash) return;
 
-    // Only refetch once the receipt is in hand — refetching on submission reads pre-transaction
+    // Only refetch once the receipt is in hand. Refetching on submission reads pre-transaction
     // state and shows the user a value that is about to change.
     setPhase("cooldown");
     onConfirmed?.();
@@ -73,7 +73,7 @@ export function useOnchainAction(onConfirmed?: () => void) {
   /// Each receipt is awaited before the next write is sent: fire them concurrently and the second
   /// is built against state the node has not accepted yet, which on a public RPC surfaces as a
   /// nonce error rather than anything legible. Only the last hash feeds the confirmation effect,
-  /// by which point it has already landed — so `useWaitForTransactionReceipt` resolves from cache
+  /// by which point it has already landed, so `useWaitForTransactionReceipt` resolves from cache
   /// and the cooldown behaves exactly as it does for a single write.
   const executeMany = useCallback(
     async (list: Parameters<typeof writeContractAsync>[0][]) => {

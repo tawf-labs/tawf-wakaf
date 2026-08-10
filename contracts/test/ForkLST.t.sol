@@ -19,11 +19,11 @@ import {MockSwapRouter} from "../src/mocks/MockSwapRouter.sol";
 /// This is the layer that makes the Sepolia mocks honest. `testing/SKILL.md` is blunt about it:
 /// mocking an external protocol hides integration bugs that only appear against real state. The
 /// Sepolia deployment cannot prove the integration works, because Lido's Sepolia deployment is
-/// deprecated and verifiably dead — the rate has been frozen for roughly a year and the withdrawal
+/// deprecated and verifiably dead. The rate has been frozen for roughly a year and the withdrawal
 /// queue is paused. So the proof lives here instead, against contracts that are actually alive.
 ///
 /// Requires an archive-capable `MAINNET_RPC_URL`. Without it the suite skips rather than fails, so
-/// `forge test` stays green offline — but then it has proven nothing, which is why the skip is
+/// `forge test` stays green offline, but then it has proven nothing, which is why the skip is
 /// logged loudly.
 ///
 ///   forge test --match-contract ForkLSTTest -vv
@@ -33,7 +33,7 @@ contract ForkLSTTest is Test {
     address constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address constant EETH = 0x35fA164735182de50811E8e2E824cFb9B6118ac2;
     address constant WEETH = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee;
-    /// @dev Confirmed by reading `liquidityPool()` from BOTH weETH and eETH — they agree.
+    /// @dev Confirmed by reading `liquidityPool()` from BOTH weETH and eETH, and they agree.
     address constant ETHERFI_POOL = 0x308861A430be4cce5502d0A12724771Fc6DaF216;
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
@@ -63,7 +63,7 @@ contract ForkLSTTest is Test {
         feed = new MockAggregator(8, "ETH / IDRX", int256(32_000_000) * 1e8);
         router = new MockSwapRouter(IERC20(address(idrx)), IERC20(WETH), IAggregatorV3(address(feed)));
 
-        // Only the exit leg goes through the router; the staking legs are entirely real.
+        // Only the exit leg goes through the router. The staking legs are entirely real.
         router.setEthPegged(STETH, true);
         router.setEthPegged(EETH, true);
         deal(WETH, address(router), 10_000 ether);
@@ -99,7 +99,7 @@ contract ForkLSTTest is Test {
         assertEq(IERC20Metadataish(WETH).symbol(), "WETH", "WETH address");
     }
 
-    /// @notice Both venues have accrued real, substantial yield — the exact thing Lido's Sepolia
+    /// @notice Both venues have accrued real, substantial yield, the exact thing Lido's Sepolia
     ///         deployment can no longer demonstrate.
     function test_Fork_RatesHaveGenuinelyAccrued() public onlyFork {
         uint256 wstRate = IWstETH(WSTETH).stEthPerToken();
@@ -115,7 +115,7 @@ contract ForkLSTTest is Test {
         // Mainnet Lido has compounded well past the point Sepolia froze at.
         assertGt(wstRate, SEPOLIA_FROZEN_RATE, "mainnet has outgrown the frozen Sepolia rate");
 
-        // The two venues are independent protocols and must not report an identical rate —
+        // The two venues are independent protocols and must not report an identical rate,
         // if they did, the basket would be diversified in name only.
         assertTrue(wstRate != weRate, "independent venues must price independently");
     }

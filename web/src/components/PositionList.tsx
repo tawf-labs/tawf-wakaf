@@ -12,7 +12,7 @@ import { Button, Card, ErrorNote, Label } from "./ui";
 const vault = CONTRACTS.vault as `0x${string}`;
 
 /// Ticks once a second so countdowns move in real time. Contract state is polled far less
-/// often — no need to hammer the RPC just to render a clock.
+/// often, so there is no need to hammer the RPC just to render a clock.
 function useNow() {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
@@ -42,7 +42,7 @@ function PositionRow({
   const claimableAt = Number(position.unbondingStart) + Number(position.unbondingPeriod);
 
   // A perpetual position stays Status.Active forever, so `perpetual` has to be tested before
-  // anything derived from status or the tenor clock — its tenor is 0, which would otherwise read
+  // anything derived from status or the tenor clock. Its tenor is 0, which would otherwise read
   // as "matured, ready to withdraw" and offer a button the contract always rejects.
   const isPerpetual = position.perpetual;
   const isActive = !isPerpetual && position.status === 0;
@@ -94,7 +94,7 @@ function PositionRow({
         {isPerpetual && (
           <span className="inline-flex items-center gap-2 text-tawf-muted">
             <InfinityIcon className="h-4 w-4" aria-hidden />
-            No maturity and no withdrawal — the corpus is preserved and its yield flows to the
+            No maturity and no withdrawal. The corpus is preserved and its yield flows to the
             Nazir indefinitely.
           </span>
         )}
@@ -102,7 +102,7 @@ function PositionRow({
           <span className="inline-flex items-center gap-2 text-tawf-muted">
             <Clock className="h-4 w-4" aria-hidden />
             {matured ? (
-              <span className="text-tawf-green">Tenor complete — ready to withdraw</span>
+              <span className="text-tawf-green">Tenor complete, ready to withdraw</span>
             ) : (
               <>
                 Remaining tenor:{" "}
@@ -115,7 +115,7 @@ function PositionRow({
           <span className="inline-flex items-center gap-2 text-tawf-muted">
             <Hourglass className="h-4 w-4" aria-hidden />
             {claimable ? (
-              <span className="text-tawf-green">Unbonding complete — principal ready to claim</span>
+              <span className="text-tawf-green">Unbonding complete, principal ready to claim</span>
             ) : (
               <>
                 Remaining unbonding:{" "}
@@ -131,7 +131,7 @@ function PositionRow({
         )}
       </div>
 
-      {/* Actions. A perpetual position gets none — offering a disabled "Claim Principal" would
+      {/* Actions. A perpetual position gets none. Offering a disabled "Claim Principal" would
           imply the claim becomes available eventually, and it never does. */}
       {!isClaimed && !isPerpetual && (
         <div className="mt-5">

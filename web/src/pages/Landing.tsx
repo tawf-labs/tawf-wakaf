@@ -109,13 +109,13 @@ function AkadTypes() {
               </div>
 
               <p className="label-caps mt-6">
-                <Term gloss="Perpetual waqf — the classical form: the corpus is held in perpetuity and only its usufruct is given away.">
+                <Term gloss="Perpetual waqf, the classical form. The corpus is held in perpetuity and only its usufruct is given away.">
                   Waqf mu'abbad
                 </Term>
               </p>
               <h3 className="mt-2 font-serif text-2xl">Perpetual endowment</h3>
               <p className="mt-3 flex-1 text-tawf-muted">
-                The corpus is given permanently and is never returned — not to you, not to the
+                The corpus is given permanently and is never returned. Not to you, not to the
                 Nazir, not to the contract owner. It stays invested, and{" "}
                 {bpsToPercent(stats.compoundBps)} of every harvest is retained to grow it, so the
                 income it produces rises over time.
@@ -147,7 +147,7 @@ function AkadTypes() {
               </div>
 
               <p className="label-caps mt-6">
-                <Term gloss="Temporary waqf — capital is dedicated for a fixed term, after which the corpus returns to the giver.">
+                <Term gloss="Temporary waqf. Capital is dedicated for a fixed term, after which the corpus returns to the giver.">
                   Waqf mu'aqqat
                 </Term>
               </p>
@@ -164,12 +164,12 @@ function AkadTypes() {
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-tawf-muted">Tenors</dt>
-                  <dd className="tnum text-tawf-green">{tenorSummary || "—"}</dd>
+                  <dd className="tnum text-tawf-green">{tenorSummary || "n/a"}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-tawf-muted">Unbonding</dt>
                   <dd className="tnum text-tawf-green">
-                    {stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "—"}
+                    {stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "n/a"}
                   </dd>
                 </div>
               </dl>
@@ -258,7 +258,7 @@ function HowItWorks() {
     {
       icon: InfinityIcon,
       title: "Endure, or unwind",
-      body: `A perpetual endowment simply keeps producing — there is nothing to wait for and nothing to claim. A fixed-tenor position matures, you request withdrawal, and after ${stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "the unbonding period"} you claim your principal back in full.`,
+      body: `A perpetual endowment simply keeps producing, so there is nothing to wait for and nothing to claim. A fixed-tenor position matures, you request withdrawal, and after ${stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "the unbonding period"} you claim your principal back in full.`,
       to: "/dashboard",
       cta: "Track your positions",
     },
@@ -319,7 +319,7 @@ function RiskNote() {
           <p>
             Your capital is recorded in rupiah (IDRX), but is collateralized by assets
             that move with the ETH price. If ETH weakens against rupiah, the collateral
-            value drops below the corpus — and no line of code can create the difference.
+            value drops below the corpus, and no line of code can create the difference.
           </p>
           <p>
             What we are building is a way for that risk to be visible and manageable, not
@@ -373,7 +373,7 @@ function LaunchCta() {
         <h2 className="mt-6 font-serif text-4xl">Ready to place your waqf?</h2>
         <p className="mt-4 text-lg text-tawf-muted">
           The pool runs on testnet. Claim IDRX from the faucet, deposit under either akad, and walk
-          the whole lifecycle in minutes — nothing here has monetary value.
+          the whole lifecycle in minutes. Nothing here has monetary value.
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <Link to="/earn" className="btn-primary">

@@ -7,7 +7,7 @@ import { bpsToPercent, formatRp, formatTenor } from "../lib/format";
 import { useAdapters, useVaultStats } from "../lib/useVault";
 
 /// The basket, stated as targets rather than asserted in prose. The 30% stable leg is not an
-/// adapter — it is IDRX left unstaked in the vault — so it is listed separately.
+/// adapter, just IDRX left unstaked in the vault, so it is listed separately.
 function Basket() {
   const stats = useVaultStats();
   const adapters = useAdapters(Number(stats.adapterCount ?? 0n));
@@ -85,12 +85,12 @@ function PoolTerms() {
         />
         <Stat
           label="Tenor Options"
-          value={(stats.tenors ?? []).map(formatTenor).join(" · ") || "—"}
+          value={(stats.tenors ?? []).map(formatTenor).join(" · ") || "n/a"}
           hint="fixed-term akad only"
         />
         <Stat
           label="Unbonding"
-          value={stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "—"}
+          value={stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "n/a"}
           hint="after the tenor matures"
         />
         <Stat
@@ -130,7 +130,7 @@ export default function Earn() {
       <PageHeader
         eyebrow="Waqf Pool"
         title="Place your waqf"
-        lead="Deposit IDRX for a fixed tenor. The principal is recorded as yours and returned in full; only the yield above it is ever distributed."
+        lead="Deposit IDRX for a fixed tenor. The principal is recorded as yours and returned in full. Only the yield above it is ever distributed."
         aside={
           <div className="text-right">
             <Label>Total Principal</Label>

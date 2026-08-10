@@ -3,11 +3,11 @@ pragma solidity 0.8.28;
 
 /// @notice One staking venue in the SWR basket, denominated in ETH.
 ///
-/// The vault knows nothing about Lido or ether.fi — only this interface. That is what
+/// The vault knows nothing about Lido or ether.fi, only this interface. That is what
 /// lets a Sepolia mock and a real mainnet integration be the same vault bytecode, and
 /// what lets a third LST be added later without touching vault logic.
 ///
-/// Adapters hold no accounting of their own beyond their LST balance; the vault is the
+/// Adapters hold no accounting of their own beyond their LST balance. The vault is the
 /// single source of truth for principal.
 interface IYieldAdapter {
     /// @notice Stake `msg.value` ETH into the venue. Vault-only.
@@ -15,7 +15,7 @@ interface IYieldAdapter {
     function deposit() external payable returns (uint256 lstReceived);
 
     /// @notice Liquidate `lstAmount` of LST back to ETH and forward it to the vault. Vault-only.
-    /// @param minEthOut slippage floor — reverts below it. Never pass 0 (`security/SKILL.md`, MEV).
+    /// @param minEthOut slippage floor, below which it reverts. Never pass 0 (`security/SKILL.md`, MEV).
     /// @return ethOut ETH actually sent to the vault
     function withdraw(uint256 lstAmount, uint256 minEthOut) external returns (uint256 ethOut);
 

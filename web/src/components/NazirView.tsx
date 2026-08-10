@@ -15,7 +15,7 @@ type HarvestRecord = { block: bigint; toNazir: bigint; bounty: bigint; caller: s
 /// Read-only ledger of everything the nazir has received, reconstructed from `YieldStripped`
 /// events.
 ///
-/// Events are the primary way to read onchain history — contract storage only ever holds the
+/// Events are the primary way to read onchain history, because contract storage only ever holds the
 /// running total, not how it got there. Reading them straight from an RPC rather than through an
 /// indexer keeps the page working with no backend to trust or keep alive.
 export function NazirView() {
@@ -99,7 +99,7 @@ export function NazirView() {
           <Stat
             label="Perpetual Corpus"
             value={formatRp(stats.perpetualCorpus, stats.decimals)}
-            hint="endowed permanently — this income does not end"
+            hint="endowed permanently, so this income does not end"
           />
           <Stat
             label="Corpus Growth Retained"

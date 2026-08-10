@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { ArrowRight, Menu, Settings, X } from "lucide-react";
 import { activeChain, setStoredRpc, storedRpc } from "../lib/config";
 import { NetworkBanner } from "./NetworkBanner";
+import tawfLogo from "../assets/tawf-logo.png";
 
 /// The tools, one route each. Splitting them out of the landing page is the whole point: a page
 /// that both sells the idea and asks for a signature does neither job well.
@@ -14,7 +15,7 @@ const APP_NAV = [
   { to: "/nazir", label: "Nazir" },
 ] as const;
 
-/// Marketing anchors live on `/`, so they are absolute — clicking "Risks" from inside the app
+/// Marketing anchors live on `/`, so they are absolute. Clicking "Risks" from inside the app
 /// has to navigate home first, not hunt for an anchor that is not on the current page.
 const MARKETING_NAV = [
   { to: "/#akad", label: "Akad" },
@@ -66,15 +67,17 @@ function RpcSettings() {
 }
 
 /// "Cash Waqf" rather than the SWR acronym. A visitor arriving at waqf.tawf.foundation should be
-/// told what this is in words they already know; the internal product code named the thing for us,
+/// told what this is in words they already know. The internal product code named the thing for us,
 /// not for them.
+///
+/// The mark is imported rather than referenced from `public/`, so Vite fingerprints it and applies
+/// the configured relative base. An absolute `/images/...` path would break the subpath hosting
+/// that base is there to support.
 function Wordmark() {
   return (
-    <Link to="/" className="flex items-baseline gap-2.5">
-      <span className="font-serif text-2xl font-medium tracking-wide text-tawf-green">
-        Tawf<span className="text-tawf-gold">.</span>
-      </span>
-      <span className="hidden border-l border-tawf-green/15 pl-2.5 text-xs uppercase tracking-[0.2em] text-tawf-muted sm:inline">
+    <Link to="/" className="flex items-center gap-3">
+      <img src={tawfLogo} alt="Tawf" className="h-20 w-auto invert" />
+      <span className="hidden border-l border-tawf-green/15 pl-3 text-xs uppercase tracking-[0.2em] text-tawf-muted sm:inline">
         Cash Waqf
       </span>
     </Link>
@@ -184,14 +187,13 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
             <div>
-              <p className="font-serif text-2xl text-white">
-                Tawf<span className="text-tawf-gold">.</span>{" "}
-                <span className="text-lg text-white/50">Cash Waqf</span>
-              </p>
+              {/* No `invert` here: the mark is already white, and the footer is already dark. */}
+              <img src={tawfLogo} alt="Tawf" className="-ml-2 h-20 w-auto" />
+              <p className="font-serif text-lg text-white/60">Cash Waqf</p>
               {/* This footer used to carry the Foundation's own description, which belongs on
                   tawf.foundation and not on one of its programs. */}
               <p className="mt-3 text-sm">
-                On-chain cash waqf. Endow permanently or for a fixed term; the capital is preserved
+                On-chain cash waqf. Endow permanently or for a fixed term. The capital is preserved
                 and only its yield reaches the Nazir.
               </p>
               <a
@@ -245,7 +247,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <p className="label-caps">Network</p>
               <p className="mt-4 text-sm">{activeChain.name}</p>
               <p className="mt-2 text-sm">
-                Testnet — all tokens are play money with no value.
+                Testnet. All tokens are play money with no value.
               </p>
             </div>
           </div>

@@ -30,7 +30,7 @@ abstract contract SWRBase is Test {
     uint8 internal constant IDRX_DECIMALS = 2;
     uint8 internal constant FEED_DECIMALS = 8;
 
-    /// @dev ETH/IDR ~ Rp 32,000,000 — roughly ETH/USD 1963 (the live Sepolia feed) x USD/IDR 16,300.
+    /// @dev ETH/IDR ~ Rp 32,000,000, roughly ETH/USD 1963 (the live Sepolia feed) x USD/IDR 16,300.
     int256 internal constant ETH_IDRX_PRICE = int256(32_000_000) * int256(10) ** FEED_DECIMALS;
 
     uint256 internal constant TENOR_SHORT = 10 minutes;
@@ -40,7 +40,7 @@ abstract contract SWRBase is Test {
 
     uint256 internal constant W_WSTETH = 4_000; // 40%
     uint256 internal constant W_WEETH = 3_000; // 30%
-    // remaining 30% stays as idle IDRX — the stable leg
+    // remaining 30% stays as idle IDRX, the stable leg
 
     MockIDRX internal idrx;
     MockWETH internal weth;

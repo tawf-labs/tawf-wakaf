@@ -94,7 +94,7 @@ export function Button({
   );
 }
 
-/// Persistent, inline, next to the action that failed — never a toast that vanishes before
+/// Persistent, inline, next to the action that failed, never a toast that vanishes before
 /// the user has read it.
 export function ErrorNote({ message, onDismiss }: { message: string; onDismiss?: () => void }) {
   return (
@@ -124,7 +124,7 @@ export function SuccessNote({ children }: { children: ReactNode }) {
 
 export function AddressChip({ address, label }: { address?: string; label?: string }) {
   const [copied, setCopied] = useState(false);
-  if (!address) return <span className="text-tawf-muted">—</span>;
+  if (!address) return <span className="text-tawf-muted">n/a</span>;
 
   const link = explorerLink(address);
 
@@ -161,7 +161,7 @@ export function AddressChip({ address, label }: { address?: string; label?: stri
 }
 
 /// An Arabic term with its plain-English gloss attached. The design guide asks for the fiqh
-/// vocabulary to be kept rather than flattened, with a tooltip so it never becomes a gate — a
+/// vocabulary to be kept rather than flattened, with a tooltip so it never becomes a gate. A
 /// reader who does not know the word still gets the sentence.
 export function Term({ children, gloss }: { children: ReactNode; gloss: string }) {
   return (

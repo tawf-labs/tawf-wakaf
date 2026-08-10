@@ -12,7 +12,7 @@ import {MockEETH} from "../src/mocks/MockEETH.sol";
 ///
 /// The ETH/IDRX price is deliberately held FIXED and the swap spread set to zero. That isolates
 /// the vault's own accounting from market risk, which lets the suite assert the strong property
-/// that actually matters — full solvency at all times — rather than a weakened version that a
+/// that actually matters, full solvency at all times, rather than a weakened version that a
 /// price crash would trivially violate. FX risk is covered separately in the unit tests, where
 /// the expected outcome is a recorded deficit rather than silent loss.
 contract SWRHandler is Test {
@@ -139,7 +139,7 @@ contract SWRVaultInvariantTest is SWRBase {
     }
 
     /// @notice wqIDRX is minted 1:1 on deposit and burned 1:1 on claim, so its supply must equal
-    ///         outstanding principal exactly — always, after any sequence.
+    ///         outstanding principal exactly, always, after any sequence.
     function invariant_ReceiptSupplyEqualsPrincipal() public view {
         assertEq(vault.totalSupply(), vault.totalPrincipal(), "receipt supply must track principal");
     }
@@ -158,8 +158,8 @@ contract SWRVaultInvariantTest is SWRBase {
 
     /// @dev Solidity truncates on every division, so a rupiah figure that has been converted to
     ///      wei and back sheds sub-unit remainders. Each value-moving operation crosses a bounded
-    ///      number of those conversions — two per adapter inside a liquidation, plus the two swap
-    ///      legs — so total drift is bounded by ops x (adapters + 3) base units.
+    ///      number of those conversions: two per adapter inside a liquidation, plus the two swap
+    ///      legs, so total drift is bounded by ops x (adapters + 3) base units.
     ///
     ///      Asserting exact equality here would be asserting something arithmetically false.
     ///      Asserting a bound is the real property, and it still catches genuine leakage: a true
@@ -178,17 +178,17 @@ contract SWRVaultInvariantTest is SWRBase {
         );
     }
 
-    /// @notice Any recorded deficit under stable prices can only be truncation dust — never a
+    /// @notice Any recorded deficit under stable prices can only be truncation dust, never a
     ///         proportional loss, which would mean the mechanics themselves eat principal.
     function invariant_DeficitIsOnlyEverDust() public view {
         assertLe(vault.deficit(), _dustAllowance(), "mechanics must not lose principal beyond dust");
     }
 
-    /// @notice Yield paid out to the nazir and to harvest callers is genuinely surplus — it never
+    /// @notice Yield paid out to the nazir and to harvest callers is genuinely surplus. It never
     ///         comes out of principal. This is the yield-stripping promise, checked structurally.
     function invariant_DistributedYieldNeverCameFromPrincipal() public view {
         // Everything the vault still holds, plus everything it has already paid out to waqif,
-        // must cover every rupiah ever deposited — the distributed yield sits strictly on top.
+        // must cover every rupiah ever deposited. The distributed yield sits strictly on top.
         uint256 backing = vault.totalNavIDRX() + vault.reservedForClaims() + handler.ghostClaimed();
         assertGe(
             backing + _dustAllowance(), handler.ghostDeposited(), "payouts never dipped into principal"

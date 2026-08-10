@@ -282,9 +282,9 @@ Added for this repo; not part of the source document.
 
 - **Fonts are self-hosted** via `@fontsource` packages rather than loaded from Google Fonts.
   A frontend that phones out to a third party on every visit leaks visitor IPs and breaks under
-  a blocked CDN — both CROPS findings the rest of this project works to avoid.
+  a blocked CDN, both CROPS findings the rest of this project works to avoid.
 - **Honesty over reassurance.** The tone guide says *"Not as promises. As on-chain reality."* The
   vault carries genuine FX risk (rupiah principal backed by ETH-correlated assets). The solvency
   ratio is shown plainly rather than styled away, and the risk is stated before a user signs.
-- **Rupiah formatting** uses `Intl.NumberFormat('en-US')` — commas for thousands, no decimals —
+- **Rupiah formatting** uses `Intl.NumberFormat('en-US')`, commas for thousands and no decimals,
   applied to IDRX base units after decimal conversion.

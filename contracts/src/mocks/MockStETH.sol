@@ -4,8 +4,8 @@ pragma solidity 0.8.28;
 import {MockRebasingLST} from "./MockRebasingLST.sol";
 
 /// @notice TESTNET ONLY. Mirrors Lido stETH's `submit(address)` entrypoint.
-/// Real Sepolia stETH (0x3e3FE...) accepts deposits but its oracle is dormant — verified
-/// zero rebase events for ~1 year — so it can never demonstrate yield. This can.
+/// Real Sepolia stETH (0x3e3FE...) accepts deposits but its oracle is dormant, with verified
+/// zero rebase events for ~1 year, so it can never demonstrate yield. This can.
 /// NEVER deploy to mainnet.
 contract MockStETH is MockRebasingLST {
     constructor() MockRebasingLST("Liquid staked Ether 2.0", "stETH") {}
@@ -18,6 +18,6 @@ contract MockStETH is MockRebasingLST {
         return totalShares - sharesBefore;
     }
 
-    /// @notice ETH held here backs the pool; the wrapper pulls it out on unwrap paths.
+    /// @notice ETH held here backs the pool, and the wrapper pulls it out on unwrap paths.
     receive() external payable {}
 }

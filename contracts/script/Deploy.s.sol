@@ -69,7 +69,7 @@ contract Deploy is Script {
         uint256 routerEthSeed = vm.envOr("ROUTER_WETH_SEED", uint256(0.05 ether));
 
         // Short tenors so the whole lifecycle is demoable in minutes. A mainnet script would seed
-        // 30/90/180 days and a 14-day unbonding — same code, different numbers.
+        // 30/90/180 days and a 14-day unbonding. Same code, different numbers.
         uint256[] memory tenors = new uint256[](3);
         tenors[0] = 10 minutes;
         tenors[1] = 30 minutes;

@@ -5,7 +5,7 @@ import {SWRBase} from "./SWRBase.t.sol";
 import {SWRVault} from "../src/SWRVault.sol";
 import {AkadCertificateNFT} from "../src/AkadCertificateNFT.sol";
 
-/// @notice Waqf mu'abbad — the irrevocable endowment path.
+/// @notice Waqf mu'abbad, the irrevocable endowment path.
 ///
 /// The property under test is not "the button is hidden" but "the contract refuses". A frontend
 /// that merely omits the withdraw control leaves `requestUnstake` callable from any block
@@ -68,7 +68,7 @@ contract SWRPerpetualTest is SWRBase {
         _warp(TENOR_LONG * 10);
 
         // Positions are keyed by caller, so the owner reaching for alice's endowment finds
-        // nothing — and reaching for their own still hits the same refusal as everyone else.
+        // nothing, and reaching for their own still hits the same refusal as everyone else.
         vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(SWRVault.NoSuchPosition.selector, 0));
         vault.requestUnstake(0);
@@ -135,7 +135,7 @@ contract SWRPerpetualTest is SWRBase {
         assertEq(idrx.balanceOf(nazir) - nazirBefore, toNazir);
 
         // The retained share is the configured fraction of the whole surplus, and the nazir keeps
-        // the rest — so the endowment can never quietly take everything.
+        // the rest, so the endowment can never quietly take everything.
         assertLt(vault.perpetualCompounded(), toNazir, "30% retained must be less than 70% paid");
     }
 

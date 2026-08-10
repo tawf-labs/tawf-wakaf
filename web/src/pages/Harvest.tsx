@@ -4,7 +4,7 @@ import { Label, MotionCard, PageHeader, Section } from "../components/ui";
 import { bpsToPercent } from "../lib/format";
 import { useVaultStats } from "../lib/useVault";
 
-/// Protocol-health page. Anyone can act here — that is the point, so it is not gated behind a
+/// Protocol-health page. Anyone can act here, which is the point, so it is not gated behind a
 /// waqif position or an admin role.
 export default function Harvest() {
   const stats = useVaultStats();

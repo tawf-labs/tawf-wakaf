@@ -14,12 +14,12 @@ export type Position = {
   unbondingPeriod: bigint;
   akadTokenId: bigint;
   status: number; // 0 Active, 1 Unbonding, 2 Claimed
-  /// Waqf mu'abbad. Set at deposit, never mutated — a perpetual position stays Active forever
+  /// Waqf mu'abbad. Set at deposit, never mutated. A perpetual position stays Active forever
   /// because nothing can move it out of that state.
   perpetual: boolean;
 };
 
-/// Vault-wide figures. Polled on a 4s interval — inside the "responsive but not runaway" band;
+/// Vault-wide figures. Polled on a 4s interval, inside the "responsive but not runaway" band.
 /// tighter than this on a public RPC is how you get rate-limited.
 export function useVaultStats() {
   const { data, refetch, isLoading } = useReadContracts({

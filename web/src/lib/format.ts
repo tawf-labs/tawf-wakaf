@@ -3,7 +3,7 @@ import { formatUnits } from "viem";
 /// IDRX base units -> a rupiah string. Indonesian convention: dots for thousands, no decimals
 /// on whole amounts. `Rp 750.000`, never `Rp 750,000.00`.
 export function formatRp(base: bigint | undefined, decimals: number, opts?: { compact?: boolean }): string {
-  if (base === undefined) return "—";
+  if (base === undefined) return "n/a";
   const asNumber = Number(formatUnits(base, decimals));
 
   if (opts?.compact && Math.abs(asNumber) >= 1_000_000) {
@@ -32,14 +32,14 @@ export function parseRp(input: string, decimals: number): bigint {
 }
 
 export function formatEth(wei: bigint | undefined): string {
-  if (wei === undefined) return "—";
+  if (wei === undefined) return "n/a";
   return `${Number(formatUnits(wei, 18)).toLocaleString("en-US", {
     maximumFractionDigits: 5,
   })} ETH`;
 }
 
 export function truncateAddress(addr?: string): string {
-  if (!addr) return "—";
+  if (!addr) return "n/a";
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
@@ -74,4 +74,4 @@ export function formatDate(unixSeconds: number): string {
 }
 
 export const bpsToPercent = (bps: bigint | undefined) =>
-  bps === undefined ? "—" : `${(Number(bps) / 100).toFixed(2)}%`;
+  bps === undefined ? "n/a" : `${(Number(bps) / 100).toFixed(2)}%`;

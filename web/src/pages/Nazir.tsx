@@ -4,7 +4,7 @@ import { formatRp } from "../lib/format";
 import { useVaultStats } from "../lib/useVault";
 
 /// Read-only beneficiary view, reconstructed from `YieldStripped` events rather than served by a
-/// backend — the ledger stays readable even if this frontend disappears.
+/// backend, so the ledger stays readable even if this frontend disappears.
 export default function Nazir() {
   const stats = useVaultStats();
 

@@ -17,7 +17,7 @@ contract SWRVaultFuzzTest is SWRBase {
         uint256 asIdrx = vault.ethToIdrx(weiAmount);
         uint256 backToWei = vault.idrxToEth(asIdrx);
 
-        // IDRX has 2 decimals, so one base unit is Rp 0.01 — worth ~3e8 wei at Rp 32M/ETH.
+        // IDRX has 2 decimals, so one base unit is Rp 0.01, worth ~3e8 wei at Rp 32M/ETH.
         // The round trip can only lose that quantisation step, never a decimal-shift factor.
         assertApproxEqRel(backToWei, weiAmount, 0.001e18, "round trip must not shift decimals");
     }

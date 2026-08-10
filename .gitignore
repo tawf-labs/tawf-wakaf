@@ -1,4 +1,4 @@
-# Secrets — NEVER commit. Leaked keys are drained by bots within seconds.
+# Secrets. NEVER commit. Leaked keys are drained by bots within seconds.
 .env
 .env.*
 !.env.example

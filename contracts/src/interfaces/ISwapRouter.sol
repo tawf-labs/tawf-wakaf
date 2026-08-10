@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 /// @notice Minimal exact-input swap, denominated in whole tokens in / tokens out.
 ///
-/// SWR needs this because principal is held in IDRX while yield is earned in ETH —
+/// SWR needs this because principal is held in IDRX while yield is earned in ETH,
 /// every route in and out of the basket crosses that currency boundary.
 ///
 /// On Sepolia this is `MockSwapRouter`, priced off the same oracle the vault uses.
@@ -11,7 +11,7 @@ pragma solidity 0.8.28;
 /// `exactInputSingle`, passing `minAmountOut` straight through to `amountOutMinimum`.
 interface ISwapRouter {
     /// @param minAmountOut slippage floor. The vault always derives this from the oracle
-    ///        and never passes 0 — an unbounded swap is a free sandwich for MEV searchers.
+    ///        and never passes 0. An unbounded swap is a free sandwich for MEV searchers.
     function swapExactInput(
         address tokenIn,
         address tokenOut,

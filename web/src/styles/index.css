@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Self-hosted rather than pulled from Google Fonts. A frontend that phones out to a third party
-   on every visit leaks visitor IPs and breaks the moment that CDN is blocked — both of which
+   on every visit leaks visitor IPs and breaks the moment that CDN is blocked. Both
    undercut the censorship-resistance the rest of this project works for. */
 @import "@fontsource/cormorant-garamond/300.css";
 @import "@fontsource/cormorant-garamond/400.css";
@@ -59,7 +59,7 @@
     color: var(--color-tawf-green);
   }
 
-  /* Every interactive element must show where focus is — keyboard users included. */
+  /* Every interactive element must show where focus is, keyboard users included. */
   :focus-visible {
     outline: 2px solid var(--color-tawf-gold);
     outline-offset: 2px;

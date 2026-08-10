@@ -3,7 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { activeChain } from "../lib/config";
 
 /// Sits above every tool page. The deployed contracts live on exactly one chain, so a wallet
-/// pointed anywhere else makes every write revert and every read return nothing — a state worth
+/// pointed anywhere else makes every write revert and every read return nothing, a state worth
 /// naming loudly rather than letting the user discover it through a failed transaction.
 export function NetworkBanner() {
   const { isConnected } = useAccount();

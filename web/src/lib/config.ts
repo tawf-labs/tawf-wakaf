@@ -21,7 +21,7 @@ const rpcOverride = typeof window !== "undefined" ? storedRpc() : "";
 
 export const wagmiConfig = getDefaultConfig({
   appName: "Tawf Cash Waqf",
-  // WalletConnect needs a project id; without one only injected wallets are offered, which is
+  // WalletConnect needs a project id. Without one only injected wallets are offered, which is
   // a perfectly usable fallback rather than a hard failure.
   projectId: import.meta.env.VITE_WC_PROJECT_ID ?? "swr_wakaf_local",
   chains: [activeChain],

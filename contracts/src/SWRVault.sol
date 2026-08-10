@@ -13,8 +13,8 @@ import {ISwapRouter, IWETH} from "./interfaces/ISwapRouter.sol";
 import {IAggregatorV3} from "./interfaces/IAggregatorV3.sol";
 import {AkadCertificateNFT} from "./AkadCertificateNFT.sol";
 
-/// @title SWR Vault — Staking Waqf Ritel
-/// @notice Retail cash-waqf vault. A waqif deposits IDRX and picks a tenor; the vault routes the
+/// @title SWR Vault, Retail Cash Waqf
+/// @notice Retail cash-waqf vault. A waqif deposits IDRX and picks a tenor. The vault routes the
 ///         deposit across a basket of liquid-staking venues, strips NAV surplus to the nazir
 ///         wallet, and returns 100% of the principal after tenor + unbonding.
 ///
@@ -23,7 +23,7 @@ import {AkadCertificateNFT} from "./AkadCertificateNFT.sol";
 /// Principal is denominated in IDRX (rupiah) but is backed by ETH-correlated assets. If ETH falls
 /// against the rupiah, NAV falls below `totalPrincipal` and no amount of Solidity can conjure the
 /// difference. `bufferBps`, `deficit`, `solvencyRatioBps()` and `topUp()` exist to make that risk
-/// visible and survivable — not to eliminate it. It is a property of the asset choice.
+/// visible and survivable, not to eliminate it. It is a property of the asset choice.
 ///
 /// ## Nothing is automatic
 ///
@@ -52,20 +52,20 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         Claimed
     }
 
-    /// @dev Packed into 3 slots. uint128 caps principal at ~3.4e38 base units — far beyond any
+    /// @dev Packed into 3 slots. uint128 caps principal at ~3.4e38 base units, far beyond any
     ///      plausible rupiah figure even at 18 decimals.
     struct Position {
         uint128 principal; // IDRX base units owed to the waqif
         uint128 reserved; // IDRX actually set aside at requestUnstake
         uint64 depositedAt;
-        uint64 tenor; // seconds; snapshotted, so later config changes cannot extend a live lock
+        uint64 tenor; // seconds, snapshotted so later config changes cannot extend a live lock
         uint64 unbondingStart; // 0 until requestUnstake
-        uint64 unbondingPeriod; // seconds; snapshotted for the same reason
+        uint64 unbondingPeriod; // seconds, snapshotted for the same reason
         uint64 akadTokenId;
         Status status;
-        /// @dev Waqf mu'abbad — an irrevocable endowment. The corpus is never returned, so
+        /// @dev Waqf mu'abbad, an irrevocable endowment. The corpus is never returned, so
         ///      `requestUnstake` and `claim` are permanently closed to this position. Set once at
-        ///      deposit and never mutated; there is deliberately no function that can flip it,
+        ///      deposit and never mutated. There is deliberately no function that can flip it,
         ///      in either direction.
         bool perpetual;
     }
@@ -85,7 +85,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
     IYieldAdapter[] public adapters;
     /// @notice Basis points of each deposit routed to `adapters[i]`. The unallocated remainder
-    ///         stays as idle IDRX — the stable leg standing in for the PRD's syariah-RWA sleeve,
+    ///         stays as idle IDRX, the stable leg standing in for the PRD's syariah-RWA sleeve,
     ///         which doubles as the first line of defence in a drawdown.
     uint256[] public weightsBps;
 
@@ -98,7 +98,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     ///         being paid out. Capped at `MAX_COMPOUND_BPS` so the nazir can never be starved by
     ///         an owner who sets it to 100%.
     uint256 public compoundBps = 3_000; // 30%
-    uint256 public maxSlippageBps = 100; // 1% floor on every swap; never 0
+    uint256 public maxSlippageBps = 100; // 1% floor on every swap, never 0
     uint256 public maxOracleAge = 3 hours;
     uint256 public minDeposit;
     uint256 public minHarvest;
@@ -111,14 +111,14 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     uint256 public totalPrincipal;
     /// @notice Principal belonging to positions already in unbonding. Its backing has been pulled
     ///         out of the basket into `reservedForClaims`, so it must be excluded from the harvest
-    ///         floor — otherwise the floor counts an obligation whose assets are no longer in NAV,
+    ///         floor. Otherwise the floor counts an obligation whose assets are no longer in NAV,
     ///         and yield stops being distributable the moment anyone starts unbonding.
     uint256 public unbondingPrincipal;
     /// @notice IDRX earmarked for positions already in unbonding. Excluded from working NAV.
     uint256 public reservedForClaims;
     /// @notice Lifetime IDRX delivered to the nazir.
     uint256 public totalYieldStripped;
-    /// @notice Cumulative principal that could not be reserved in full — the FX risk, made visible.
+    /// @notice Cumulative principal that could not be reserved in full: the FX risk, made visible.
     uint256 public deficit;
     /// @notice Highest NAV-per-principal ever observed, in WAD. Reporting only, never a gate.
     uint256 public peakNavPerPrincipalWad;
@@ -254,12 +254,12 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         _route(received);
     }
 
-    /// @notice Endow IDRX permanently — waqf mu'abbad. The corpus is never returned.
+    /// @notice Endow IDRX permanently, as waqf mu'abbad. The corpus is never returned.
     ///
     /// @dev This is a one-way door and the contract treats it as one: there is no tenor to wait
     ///      out, no unbonding queue, and `requestUnstake` reverts for the life of the position.
     ///      The corpus still counts toward the harvest floor, so it is preserved rather than spent
-    ///      — only the yield above it ever reaches the nazir, and a configurable share of that
+    ///      Only the yield above it ever reaches the nazir, and a configurable share of that
     ///      yield is retained to grow the endowment itself.
     ///
     ///      There is deliberately no admin path to unwind one of these. An owner who could return
@@ -299,7 +299,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         positionId = _positions[msg.sender].length;
 
         // EFFECTS first. `akad.mintAkad` ends in `_safeMint`, which invokes `onERC721Received` on
-        // a contract recipient — a genuine callback into arbitrary code. `nonReentrant` already
+        // a contract recipient, a genuine callback into arbitrary code. `nonReentrant` already
         // blocks re-entry, but the position must exist and be fully accounted before that
         // callback can observe the vault, so a reader called from it never sees a half-built state.
         _positions[msg.sender].push(
@@ -321,7 +321,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         totalPrincipal += received;
         _mint(msg.sender, received);
 
-        // INTERACTIONS. The certificate id is cosmetic — it links the position to its akad NFT
+        // INTERACTIONS. The certificate id is cosmetic. It links the position to its akad NFT
         // and gates nothing, so writing it back after the mint costs no safety.
         akadTokenId = akad.mintAkad(msg.sender, received, tenor, poolLabel);
         _positions[msg.sender][positionId].akadTokenId = uint64(akadTokenId);
@@ -334,9 +334,9 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     ///      Known and accepted CEI deviation: `reservedForClaims` is written after the liquidation
     ///      calls, because how much can be reserved is not knowable until the unwind returns. It
     ///      cannot be hoisted. What makes it safe is that `nonReentrant` shares one lock across
-    ///      every entrypoint here, and every address reached during the unwind — router, adapters,
-    ///      WETH — is owner-configured rather than caller-supplied, so an attacker cannot inject a
-    ///      contract into the call path. Flagged by Slither as `reentrancy-eth`; recorded in the
+    ///      every entrypoint here, and every address reached during the unwind (router, adapters,
+    ///      WETH) is owner-configured rather than caller-supplied, so an attacker cannot inject a
+    ///      contract into the call path. Flagged by Slither as `reentrancy-eth`, and recorded in the
     ///      README rather than suppressed.
     function requestUnstake(uint256 positionId) external nonReentrant {
         Position storage p = _getPosition(msg.sender, positionId);
@@ -353,7 +353,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
         uint256 need = p.principal;
 
-        // Spend the idle stable leg first — it exists for exactly this, and it avoids paying
+        // Spend the idle stable leg first. It exists for exactly this, and it avoids paying
         // swap spread to unwind LST positions that are still earning.
         uint256 idle = _idleIdrx();
         uint256 obtained = need <= idle ? need : idle;
@@ -407,7 +407,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     //                          Permissionless yield
     // =====================================================================
 
-    /// @notice Strip NAV surplus to the nazir. Callable by anyone; the caller keeps
+    /// @notice Strip NAV surplus to the nazir. Callable by anyone. The caller keeps
     ///         `harvestBountyBps` of what they realise.
     /// @dev Only the amount above principal + buffer is ever touched, so a harvest can never
     ///      reduce the vault's backing of principal below the cushion.
@@ -420,7 +420,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         if (nav <= floor) revert NoSurplus(nav, floor);
         uint256 surplus = nav - floor;
 
-        // The endowment's share is left where it already is — invested in the basket — rather than
+        // The endowment's share is left where it already is, invested in the basket, rather than
         // unwound to IDRX and immediately re-staked. A round trip through the swap desk would pay
         // spread twice to end up in the same position. So only the payable remainder is liquidated;
         // `retain` is credited to the corpus as a bookkeeping entry against value that never moved.
@@ -435,7 +435,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         // the floor.
         //
         // Unwinding crosses two swap legs and is not free. Sizing the payout from the pre-unwind
-        // NAV would charge that cost to the buffer backing principal — the vault would end a
+        // NAV would charge that cost to the buffer backing principal. The vault would end a
         // harvest *below* its own floor, quietly funding the nazir out of the waqif's cushion.
         // Measuring afterwards makes the cost fall on the yield being distributed, where it
         // belongs. `floor` is unchanged here because no principal moved during liquidation.
@@ -470,7 +470,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         if (toNazir > 0) idrx.safeTransfer(nazir, toNazir);
     }
 
-    /// @notice Donate IDRX to close a recorded deficit. Permissionless — a takaful reserve, the
+    /// @notice Donate IDRX to close a recorded deficit. Permissionless. A takaful reserve, the
     ///         nazir, or anyone at all can make waqif whole.
     function topUp(uint256 amount) external nonReentrant {
         if (amount == 0) revert ZeroAmount();
@@ -496,7 +496,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice Principal still backed by the basket — total obligations minus those already
+    /// @notice Principal still backed by the basket: total obligations minus those already
     ///         pulled out and earmarked for claims.
     function workingPrincipal() public view returns (uint256) {
         return totalPrincipal > unbondingPrincipal ? totalPrincipal - unbondingPrincipal : 0;
@@ -505,7 +505,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     /// @notice NAV must exceed this before any yield may leave for the nazir.
     ///
     /// @dev `perpetualCompounded` is added at par, deliberately without a buffer on top. The buffer
-    ///      exists to cushion principal that someone will one day walk up and withdraw; endowment
+    ///      exists to cushion principal that someone will one day walk up and withdraw. Endowment
     ///      growth is never withdrawn, so it needs protection from being stripped, not a reserve
     ///      against redemption. Buffering it as well would also make the floor rise faster than a
     ///      harvest can fund, so every compounding harvest would end the vault below its own floor.
@@ -615,7 +615,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     /// @dev Split a fresh deposit across the basket. The unallocated remainder simply stays as
-    ///      IDRX — no transfer needed, it is already here.
+    ///      IDRX, so no transfer is needed and it is already here.
     function _route(uint256 amount) private {
         uint256 n = adapters.length;
         for (uint256 i; i < n; ++i) {
@@ -653,9 +653,9 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     ///      weights stay honoured, and convert the proceeds back to IDRX.
     ///
     ///      May return slightly MORE than requested. Getting `targetIdrx` out means crossing two
-    ///      swap legs — LST->WETH inside the adapter, then WETH->IDRX here — so liquidating the
+    ///      swap legs (LST->WETH inside the adapter, then WETH->IDRX here), so liquidating the
     ///      exact nominal amount always lands short by about twice the spread. The target is
-    ///      grossed up for both legs at the vault's own slippage tolerance; any excess simply
+    ///      grossed up for both legs at the vault's own slippage tolerance, and any excess simply
     ///      stays as idle IDRX, moved from the LST sleeve into the stable sleeve rather than lost.
     ///      Callers must cap what they pay out, never assuming the return equals the request.
     function _liquidateToIdrx(uint256 targetIdrx) private returns (uint256 obtainedIdrx) {
@@ -724,7 +724,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
             if (address(_adapters[i]) == address(0)) revert ZeroAddress();
             total += _weightsBps[i];
         }
-        // Strictly less than 100% is fine and expected — the remainder is the stable leg.
+        // Strictly less than 100% is fine and expected. The remainder is the stable leg.
         if (total > BPS) revert WeightsExceedTotal(total);
 
         adapters = _adapters;

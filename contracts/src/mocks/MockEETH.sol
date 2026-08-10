@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {MockRebasingLST} from "./MockRebasingLST.sol";
 
 /// @notice TESTNET ONLY. ether.fi eETH. Unlike Lido, ether.fi's ETH entrypoint is a
-/// separate LiquidityPool contract rather than the token itself — mirrored here so the
+/// separate LiquidityPool contract rather than the token itself, mirrored here so the
 /// WeETHAdapter's call path matches mainnet.
 /// NEVER deploy to mainnet.
 contract MockEETH is MockRebasingLST {

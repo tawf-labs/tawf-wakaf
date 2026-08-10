@@ -16,8 +16,8 @@ const STEPS = [100, 250, 500] as const;
 /// Testnet-only controls.
 ///
 /// On a real network validator rewards arrive on their own and the vault simply observes them.
-/// The Sepolia deployment uses interface-identical mocks — Lido's own Sepolia deployment is
-/// deprecated, its rate frozen and its withdrawal queue paused — so nothing ever accrues unless
+/// The Sepolia deployment uses interface-identical mocks, because Lido's own Sepolia deployment is
+/// deprecated, its rate frozen and its withdrawal queue paused, so nothing ever accrues unless
 /// somebody says so. Without this panel `harvest()` can never have a surplus to strip and the
 /// yield-stripping half of the protocol is undemonstrable.
 ///
@@ -118,7 +118,7 @@ export function TestnetLab() {
 
       {nothingStaked && (
         <p className="mt-4 text-sm text-tawf-muted">
-          Nothing is staked yet — make a waqf deposit first, then rewards have a balance to grow.
+          Nothing is staked yet. Make a waqf deposit first, then rewards have a balance to grow.
         </p>
       )}
 

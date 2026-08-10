@@ -8,7 +8,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 ///
 /// Real stETH is not a plain ERC-20: balances are derived from an internal share count
 /// divided by a total-pooled-ether figure that grows when rewards land. Modelling that
-/// faithfully (rather than as a plain mintable token) is the point — it is what makes the
+/// faithfully (rather than as a plain mintable token) is the point. It is what makes the
 /// wrapper's rate move, and it keeps the adapter code identical against real Lido.
 ///
 /// NEVER deploy to mainnet.
@@ -106,7 +106,7 @@ abstract contract MockRebasingLST is IERC20, IERC20Metadata {
         emit Transfer(address(0), to, ethAmount);
     }
 
-    /// @notice TESTNET: simulate validator rewards arriving. Permissionless by design —
+    /// @notice TESTNET: simulate validator rewards arriving. Permissionless by design,
     ///         this is a faucet-grade lever so anyone can demo the yield-stripping flow.
     /// @param rewardWei ETH-equivalent rewards to add to the pool
     function accrue(uint256 rewardWei) external {

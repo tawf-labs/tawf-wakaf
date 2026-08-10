@@ -43,7 +43,7 @@ contract WeETHAdapter is BaseLSTAdapter {
     function _stakeAndWrap(uint256 ethAmount) internal override returns (uint256) {
         liquidityPool.deposit{value: ethAmount}();
 
-        // Wrap the eETH actually credited — share rounding again.
+        // Wrap the eETH actually credited, because of share rounding again.
         uint256 eBalance = IERC20(address(eETH)).balanceOf(address(this));
         IERC20(address(eETH)).forceApprove(address(weETH), eBalance);
         return weETH.wrap(eBalance);

@@ -7,7 +7,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 /// @notice The Akad (Wakalah bil Istithmar) certificate for one SWR deposit,
-/// rendered fully onchain as SVG — no IPFS, no gateway, nothing to go dark.
+/// rendered fully onchain as SVG, with no IPFS, no gateway, and nothing to go dark.
 ///
 /// Ported from the `skripsi-staking` thesis project with two substantive changes:
 ///
@@ -15,7 +15,7 @@ import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 ///     The original hardcoded `/1e18`, which on a 2-decimal token would render every
 ///     deposit as "0.0000".
 ///  2. Minting is restricted to the vault. In the original, the akad's `period` was
-///     decorative metadata that nothing enforced; here the same field is the tenor the
+///     decorative metadata that nothing enforced. Here the same field is the tenor the
 ///     vault actually locks against, so the certificate has to be non-forgeable.
 contract AkadCertificateNFT is ERC721, Ownable {
     using Strings for uint256;
@@ -91,7 +91,7 @@ contract AkadCertificateNFT is ERC721, Ownable {
     // --- rendering --------------------------------------------------------
 
     /// @dev Decimal-aware fixed-point rendering. Two fractional digits is right for a
-    ///      rupiah-denominated asset; a token with fewer decimals is left-padded.
+    ///      rupiah-denominated asset, and a token with fewer decimals is left-padded.
     function _formatAmount(uint256 amount) internal view returns (string memory) {
         uint256 scale = 10 ** assetDecimals;
         uint256 whole = amount / scale;
@@ -103,7 +103,7 @@ contract AkadCertificateNFT is ERC721, Ownable {
 
         string memory fracStr = shown.toString();
         if (shown < 10) fracStr = string.concat("0", fracStr);
-        // Decimal point, not the Indonesian comma — every other string on this certificate is
+        // Decimal point, not the Indonesian comma. Every other string on this certificate is
         // English, and "1,50 IDRX" reads as one-thousand-five-hundred to that audience.
         return string.concat(whole.toString(), ".", fracStr);
     }
@@ -120,7 +120,7 @@ contract AkadCertificateNFT is ERC721, Ownable {
     /// @dev The wording of the akad, which is not the same akad in both cases. A tenor of zero is
     ///      waqf mu'abbad: the corpus is never returned, so printing the fixed-tenor promise of a
     ///      100% principal return on that certificate would state the opposite of what the waqif
-    ///      actually agreed to — and this certificate is the artefact they keep.
+    ///      actually agreed to, and this certificate is the artefact they keep.
     function _deedText(uint256 tenor) internal pure returns (string memory) {
         if (tenor == 0) {
             return "The wallet owner named below knowingly and irrevocably endows this capital"

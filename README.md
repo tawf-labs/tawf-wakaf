@@ -1,20 +1,20 @@
-# SWR — Staking Wakaf Ritel
+# SWR, Retail Cash Waqf
 
 Retail cash-waqf on Ethereum. A waqif deposits IDRX under one of two akad; the vault routes the
 deposit across a basket of liquid-staking venues and strips the NAV surplus to a nazir wallet.
 
 | Akad | Corpus | Contract behaviour |
 |---|---|---|
-| **Waqf mu'abbad** — perpetual | never returned | `depositPerpetual()`; `requestUnstake` reverts `PerpetualPosition()` forever |
-| **Waqf mu'aqqat** — fixed tenor | returned 100% after tenor + unbonding | `deposit()`, then `requestUnstake` → `claim` |
+| **Waqf mu'abbad**, perpetual | never returned | `depositPerpetual()`; `requestUnstake` reverts `PerpetualPosition()` forever |
+| **Waqf mu'aqqat**, fixed tenor | returned 100% after tenor + unbonding | `deposit()`, then `requestUnstake` → `claim` |
 
-The perpetual akad is enforced in Solidity, not in the UI. There is no function — for the waqif,
-the nazir, or the owner — that returns a perpetual corpus. Hiding a button would have repeated
+The perpetual akad is enforced in Solidity, not in the UI. There is no function, for the waqif,
+the nazir, or the owner, that returns a perpetual corpus. Hiding a button would have repeated
 exactly the flaw this project was written to correct.
 
 Successor to [`WeissCurry/skripsi-staking`](https://github.com/WeissCurry/skripsi-staking). That
 project shipped an ERC-4626 WETH vault where `period` and `poolId` were **decorative NFT metadata**
-— nothing enforced them — and yield extraction was a manual `onlyOwner` call. Here the vault
+that nothing enforced, and yield extraction was a manual `onlyOwner` call. Here the vault
 actually enforces the tenor, runs an unbonding queue, and strips yield through a function anyone
 can call.
 
@@ -36,7 +36,7 @@ What this codebase does is make that risk visible and survivable, not absent:
 | 30% idle IDRX sleeve | A stable leg that genuinely dampens ETH drawdown |
 | `deficit` | Any shortfall at unstake is recorded onchain, never hidden |
 | `solvencyRatioBps()` | Backing vs obligations, surfaced in the UI rather than styled away |
-| `topUp()` | Permissionless — a takaful reserve, or anyone, can make waqif whole |
+| `topUp()` | Permissionless. A takaful reserve, or anyone, can make waqif whole |
 
 This is a property of the asset choice, not a bug to be fixed. It is stated in the UI before a user
 signs. **Unaudited, testnet only, all tokens are play money.**
@@ -77,7 +77,7 @@ SWRVault.sol ──┬── WstETHAdapter ──→ Lido      (submit → stETH
                └── AkadCertificateNFT             (per-deposit akad certificate, onchain SVG)
 ```
 
-The vault knows nothing about Lido or ether.fi — only `IYieldAdapter`. That is what lets a Sepolia
+The vault knows nothing about Lido or ether.fi, only `IYieldAdapter`. That is what lets a Sepolia
 mock and a real mainnet integration be the same vault bytecode.
 
 Four production contracts, one above the three-contract MVP guidance. The adapters are ~60-line
@@ -99,7 +99,7 @@ replace a mock without touching vault logic. A stated exception, not accidental 
 ### Nothing is automatic
 
 `harvest()` is permissionless and pays the caller a bounty out of the surplus it strips. There is no
-cron, no scheduler, no privileged keeper — the flow diagram's "Keeper Node" is a convenience caller
+cron, no scheduler, no privileged keeper. The flow diagram's "Keeper Node" is a convenience caller
 competing with anyone else who wants the bounty.
 
 | Function | Who calls it | Why | If nobody does |
@@ -117,12 +117,12 @@ floor     = workingPrincipal + workingPrincipal × bufferBps / 10000
 surplus   = NAV − floor
 ```
 
-`workingPrincipal` excludes positions already unbonding — their backing has been pulled out and
+`workingPrincipal` excludes positions already unbonding, because their backing has been pulled out and
 earmarked, so counting them would freeze yield distribution the moment anyone starts unbonding.
 
 The payout is sized from NAV **after** the unwind settles. Unwinding crosses two swap legs and is
 not free; sizing from the pre-unwind NAV charges that cost to the buffer, and the vault ends a
-harvest *below* its own floor — quietly funding the nazir out of the waqif's cushion. Measuring
+harvest *below* its own floor, quietly funding the nazir out of the waqif's cushion. Measuring
 afterwards puts the cost on the yield, where it belongs.
 
 ---
@@ -130,7 +130,7 @@ afterwards puts the cost on the yield, where it belongs.
 ## Repo layout
 
 ```
-contracts/      Foundry — src/, test/, script/Deploy.s.sol, script/smoke.sh
+contracts/      Foundry: src/, test/, script/Deploy.s.sol, script/smoke.sh
 web/            React 19 + Vite 6 + Tailwind v4 + wagmi/viem/RainbowKit
 design_guidelines.md   Tawf Islamic Foundation design system (authoritative for web/)
 prd.md          Original product brief
@@ -145,13 +145,13 @@ prd.md          Original product brief
 ```bash
 cd contracts
 forge build
-forge test                                   # 65 tests
+forge test                                   # 74 tests
 forge test --fuzz-runs 10000                 # deeper fuzzing
 MAINNET_RPC_URL=<archive-rpc> forge test --match-contract ForkLSTTest -vv
 ```
 
 Fork tests need an **archive-capable** mainnet RPC. Without `MAINNET_RPC_URL` they skip and log
-that they did — a green suite without it has proven nothing about the real integration.
+that they did. A green suite without it has proven nothing about the real integration.
 
 ### Local end-to-end
 
@@ -188,7 +188,7 @@ The deploy script writes `web/src/generated/addresses.json`, so the frontend nev
 deployment.
 
 Sepolia is seeded with **10 / 30 / 60-minute tenors and 5-minute unbonding** so the lifecycle is
-demoable. A mainnet script would seed 30/90/180 days and 14 days — same code, different numbers.
+demoable. A mainnet script would seed 30/90/180 days and 14 days. Same code, different numbers.
 
 ---
 
@@ -200,13 +200,13 @@ demoable. A mainnet script would seed 30/90/180 days and 14 days — same code, 
 |---|---|
 | `SWRVault.t.sol` (39) | tenor lock, unbonding, non-transferable receipt, access control, oracle staleness, slippage floor, deficit path |
 | `SWRVaultFuzz.t.sol` (11) | decimal normalisation, lifecycle round trip, harvest math, bounty bounds |
-| `SWRVaultInvariant.t.sol` (7) | 8192 calls each — supply≡principal, reserved claims backed, solvency, yield never from principal |
+| `SWRVaultInvariant.t.sol` (7) | 8192 calls each: supply≡principal, reserved claims backed, solvency, yield never from principal |
 | `ForkLST.t.sol` (8) | real mainnet Lido + ether.fi: stake 10 ETH into each, read live rates, unwind back |
 
 IDRX is given **2 decimals** on purpose. Pairing a 2-decimal asset with 18-decimal ETH is a far
 harsher exercise of the normalisation math than another 18-decimal token, and wrong-decimal
 handling is the most common way money silently vanishes. **Verify the real IDRX decimals against
-its live deployment before any mainnet use** — nothing here is authority on that.
+its live deployment before any mainnet use**. Nothing here is authority on that.
 
 Invariants assert **bounded truncation dust**, not exact equality. A rupiah figure converted to wei
 and back sheds sub-unit remainders; asserting exact equality would be asserting something
@@ -221,12 +221,12 @@ rather than a couple of base units per call.
 
 | Finding | Verdict |
 |---|---|
-| `reentrancy-eth` in `requestUnstake` | **Accepted.** `reservedForClaims` is written after liquidation because the reservable amount isn't knowable until the unwind returns — it cannot be hoisted. Mitigated by a shared `nonReentrant` lock across all entrypoints, and every address in the call path (router, adapters, WETH) is owner-configured, not caller-supplied. |
+| `reentrancy-eth` in `requestUnstake` | **Accepted.** `reservedForClaims` is written after liquidation because the reservable amount isn't knowable until the unwind returns, so it cannot be hoisted. Mitigated by a shared `nonReentrant` lock across all entrypoints, and every address in the call path (router, adapters, WETH) is owner-configured, not caller-supplied. |
 | `reentrancy-no-eth` in `deposit` | **Reduced.** Was the full position write; now only the cosmetic `akadTokenId`. `_safeMint` invokes `onERC721Received`, so principal, status and `totalPrincipal` are all committed before that callback can observe the vault. |
 | `divide-before-multiply` in `_liquidateToIdrx` | **Accepted.** Inherent to proportional splitting across adapters; loss is bounded dust, covered by the invariant suite. |
 | `incorrect-equality` (×13) | **False positive.** All are `if (x == 0) return` guard clauses, not balance-equality logic. |
 | `weak-prng` in `_formatAmount` | **False positive.** `amount % scale` is decimal formatting, not randomness. |
-| `unused-return` (×5) | **Deliberate.** Balance deltas are measured instead of trusting return values — more robust against share-rounding in Lido and ether.fi. |
+| `unused-return` (×5) | **Deliberate.** Balance deltas are measured instead of trusting return values, which is more robust against share-rounding in Lido and ether.fi. |
 
 Applied throughout: `SafeERC20`, CEI ordering, `nonReentrant`, custom errors, events on every state
 change, no hardcoded `1e18`, oracle staleness + positivity checks, explicit non-zero `minAmountOut`
@@ -238,12 +238,12 @@ on every swap, exact-amount approvals (never `type(uint256).max`), no upgradeabi
 
 **Censorship resistance.** `harvest()` is permissionless; `claim()` has no pause and no owner gate,
 so a waqif's exit never depends on this team. Verified by test: claiming works with a completely
-dead oracle. The owner *can* set nazir, weights, tenors and risk params — accepted for a thesis
+dead oracle. The owner *can* set nazir, weights, tenors and risk params, accepted for a thesis
 MVP; move ownership to a Safe + timelock before real funds. Escape path: every entrypoint is
 callable directly from Etherscan or abi.ninja without the frontend. The UI ships a user-configurable
 RPC field so no single provider is load-bearing.
 
-**Open source and free.** MIT. Whole stack public — contracts, frontend, deploy scripts, ABIs.
+**Open source and free.** MIT. Whole stack public: contracts, frontend, deploy scripts, ABIs.
 Fonts are self-hosted via `@fontsource` rather than pulled from Google, so the app makes no
 third-party requests. Frontend builds with `base: "./"` so it works from IPFS or any subpath.
 
@@ -251,7 +251,7 @@ third-party requests. Frontend builds with `base: "./"` so it works from IPFS or
 waqif's address into a public SVG. The deposit card states this before a user signs, rather than
 after.
 
-**Security.** No proxy, no upgradeability — nothing to trust an admin not to change. The owner
+**Security.** No proxy, no upgradeability, so there is nothing to trust an admin not to change. The owner
 cannot move principal, touch `reservedForClaims`, or block `claim()`. Tenor and unbonding period
 are **snapshotted into each position**, so changing the config cannot extend a live lock (covered
 by test). Residual risks: the USD/IDR oracle leg is owner-set on testnet and needs a real feed or
@@ -262,7 +262,7 @@ multi-source median in production, and the FX exposure described at the top.
 ## Known limitations
 
 - **Unaudited.** No third-party review.
-- **FX risk is real** and cannot be engineered away — see the top of this document.
+- **FX risk is real** and cannot be engineered away. See the top of this document.
 - **Swap spread is a real cost.** Routing charges the DEX spread on the way in and out. Over a
   30-day tenor, yield may not cover a 0.6% round trip; over 180 days it comfortably does. The vault
   records any resulting shortfall as `deficit` rather than absorbing it silently.
@@ -276,4 +276,4 @@ multi-source median in production, and the FX exposure described at the top.
 
 ## License
 
-MIT — see `LICENSE`. Every repo needed to run this app is under it, with no plan to relicense.
+MIT, see `LICENSE`. Every repo needed to run this app is under it, with no plan to relicense.
