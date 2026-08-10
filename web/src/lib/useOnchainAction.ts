@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import type { Hash } from "viem";
 import { parseContractError } from "./errors";
 
@@ -19,6 +19,7 @@ type Phase = "idle" | "submitting" | "confirming" | "cooldown";
 /// `finally` is mandatory — without it a rejected transaction locks the button forever.
 export function useOnchainAction(onConfirmed?: () => void) {
   const { writeContractAsync } = useWriteContract();
+  const client = usePublicClient();
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [hash, setHash] = useState<Hash | undefined>();
@@ -67,8 +68,37 @@ export function useOnchainAction(onConfirmed?: () => void) {
     [writeContractAsync],
   );
 
+  /// Several writes that only make sense together, run one after another under a single button.
+  ///
+  /// Each receipt is awaited before the next write is sent: fire them concurrently and the second
+  /// is built against state the node has not accepted yet, which on a public RPC surfaces as a
+  /// nonce error rather than anything legible. Only the last hash feeds the confirmation effect,
+  /// by which point it has already landed — so `useWaitForTransactionReceipt` resolves from cache
+  /// and the cooldown behaves exactly as it does for a single write.
+  const executeMany = useCallback(
+    async (list: Parameters<typeof writeContractAsync>[0][]) => {
+      setError(null);
+      setPhase("submitting");
+      let last: Hash | undefined;
+      try {
+        for (const args of list) {
+          last = await writeContractAsync(args);
+          if (client) await client.waitForTransactionReceipt({ hash: last });
+        }
+        setHash(last);
+        return last;
+      } catch (e) {
+        setError(parseContractError(e));
+        setPhase("idle");
+        return undefined;
+      }
+    },
+    [writeContractAsync, client],
+  );
+
   return {
     execute,
+    executeMany,
     error,
     clearError: () => setError(null),
     hash,

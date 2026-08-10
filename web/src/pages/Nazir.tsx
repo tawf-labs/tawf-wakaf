@@ -1,0 +1,34 @@
+import { NadzirView } from "../components/NadzirView";
+import { Label, MotionCard, PageHeader, Section } from "../components/ui";
+import { formatRp } from "../lib/format";
+import { useVaultStats } from "../lib/useVault";
+
+/// Read-only beneficiary view, reconstructed from `YieldStripped` events rather than served by a
+/// backend — the ledger stays readable even if this frontend disappears.
+export default function Nazir() {
+  const stats = useVaultStats();
+
+  return (
+    <Section tone="sand">
+      <PageHeader
+        eyebrow="Nazir Portal"
+        title="Where the yield went"
+        lead="Every harvest, the block it landed in, and who called it. Reconstructed straight from contract events."
+        aside={
+          <div className="text-right">
+            <Label>Total Distributed</Label>
+            <p className="tnum mt-2 font-serif text-3xl text-tawf-green">
+              {formatRp(stats.totalYieldStripped, stats.decimals, { compact: true })}
+            </p>
+          </div>
+        }
+      />
+
+      <div className="mt-12">
+        <MotionCard>
+          <NadzirView />
+        </MotionCard>
+      </div>
+    </Section>
+  );
+}

@@ -3,13 +3,7 @@ import { AlertTriangle, Check, Copy, ExternalLink, Loader2 } from "lucide-react"
 import { useState, type ReactNode } from "react";
 import { explorerLink } from "../lib/config";
 import { truncateAddress } from "../lib/format";
-
-export const fadeUp = {
-  initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.8, ease: "easeOut" as const },
-};
+import { fadeUp } from "../lib/motion";
 
 export function Section({
   children,
@@ -163,6 +157,31 @@ export function AddressChip({ address, label }: { address?: string; label?: stri
         </a>
       )}
     </span>
+  );
+}
+
+/// Masthead for an app page. Keeps every tool page opening the same way, so the header is not
+/// re-invented per route.
+export function PageHeader({
+  eyebrow,
+  title,
+  lead,
+  aside,
+}: {
+  eyebrow: string;
+  title: string;
+  lead?: ReactNode;
+  aside?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-6 border-b border-tawf-green/10 pb-8">
+      <motion.div {...fadeUp} className="max-w-2xl">
+        <Label>{eyebrow}</Label>
+        <h1 className="mt-3 font-serif text-4xl md:text-5xl">{title}</h1>
+        {lead && <p className="mt-4 text-lg text-tawf-muted">{lead}</p>}
+      </motion.div>
+      {aside && <div className="shrink-0">{aside}</div>}
+    </div>
   );
 }
 
