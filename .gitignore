@@ -10,6 +10,8 @@ keystore/
 contracts/out/
 contracts/cache/
 contracts/broadcast/*/dry-run/
+# Keep only run-latest.json per chain; the timestamped copies are byte-identical duplicates.
+contracts/broadcast/*/*/run-[0-9]*.json
 contracts/.gas-snapshot
 
 # Node / Vite
