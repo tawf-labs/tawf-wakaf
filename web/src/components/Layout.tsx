@@ -65,10 +65,18 @@ function RpcSettings() {
   );
 }
 
+/// "Cash Waqf" rather than the SWR acronym. A visitor arriving at waqf.tawf.foundation should be
+/// told what this is in words they already know; the internal product code named the thing for us,
+/// not for them.
 function Wordmark() {
   return (
-    <Link to="/" className="font-serif text-2xl font-medium tracking-wide text-tawf-green">
-      Tawf<span className="text-tawf-gold">.</span>
+    <Link to="/" className="flex items-baseline gap-2.5">
+      <span className="font-serif text-2xl font-medium tracking-wide text-tawf-green">
+        Tawf<span className="text-tawf-gold">.</span>
+      </span>
+      <span className="hidden border-l border-tawf-green/15 pl-2.5 text-xs uppercase tracking-[0.2em] text-tawf-muted sm:inline">
+        Cash Waqf
+      </span>
     </Link>
   );
 }
@@ -177,11 +185,21 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
             <div>
               <p className="font-serif text-2xl text-white">
-                Tawf<span className="text-tawf-gold">.</span>
+                Tawf<span className="text-tawf-gold">.</span>{" "}
+                <span className="text-lg text-white/50">Cash Waqf</span>
               </p>
+              {/* This footer used to carry the Foundation's own description, which belongs on
+                  tawf.foundation and not on one of its programs. */}
               <p className="mt-3 text-sm">
-                The non-profit, public-trust cornerstone of the Tawf ecosystem.
+                On-chain cash waqf. Endow permanently or for a fixed term; the capital is preserved
+                and only its yield reaches the Nazir.
               </p>
+              <a
+                href="https://tawf.foundation/waqf"
+                className="mt-3 inline-block text-sm transition-colors hover:text-tawf-gold"
+              >
+                A program of Tawf Islamic Foundation ↗
+              </a>
             </div>
 
             <div>

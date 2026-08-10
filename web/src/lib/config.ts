@@ -20,7 +20,7 @@ export const setStoredRpc = (url: string) => {
 const rpcOverride = typeof window !== "undefined" ? storedRpc() : "";
 
 export const wagmiConfig = getDefaultConfig({
-  appName: "SWR — Staking Wakaf Ritel",
+  appName: "Tawf Cash Waqf",
   // WalletConnect needs a project id; without one only injected wallets are offered, which is
   // a perfectly usable fallback rather than a hard failure.
   projectId: import.meta.env.VITE_WC_PROJECT_ID ?? "swr_wakaf_local",

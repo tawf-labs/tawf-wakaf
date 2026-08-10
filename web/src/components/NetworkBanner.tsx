@@ -17,7 +17,7 @@ export function NetworkBanner() {
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-6 py-3 text-sm text-amber-900">
         <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
         <span className="flex-1">
-          Your wallet is on a different network. The SWR contracts are deployed on{" "}
+          Your wallet is on a different network. The Cash Waqf contracts are deployed on{" "}
           {activeChain.name}.
         </span>
         <button
