@@ -74,8 +74,19 @@ function PoolTerms() {
 
       <div className="mt-8 grid grid-cols-2 gap-6">
         <Stat
+          label="Perpetual Akad"
+          value="Irrevocable"
+          hint="no withdrawal function exists"
+        />
+        <Stat
+          label="Endowment Share"
+          value={bpsToPercent(stats.compoundBps)}
+          hint="of each harvest, retained to compound"
+        />
+        <Stat
           label="Tenor Options"
           value={(stats.tenors ?? []).map(formatTenor).join(" · ") || "—"}
+          hint="fixed-term akad only"
         />
         <Stat
           label="Unbonding"

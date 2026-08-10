@@ -1,6 +1,6 @@
 import { BaseError, ContractFunctionRevertedError, UserRejectedRequestError } from "viem";
 
-/// Map the vault's custom errors to something a wakif can act on.
+/// Map the vault's custom errors to something a waqif can act on.
 ///
 /// Without this a user sees `0x7939f424` and has no idea whether they did something wrong or the
 /// app is broken. Every entry here is a real revert the contract can produce.
@@ -12,6 +12,9 @@ const MESSAGES: Record<string, string> = {
   NoSuchPosition: "Waqf position not found.",
   PositionNotActive: "This position is already unbonding or has been claimed.",
   PositionNotUnbonding: "Request a withdrawal before claiming.",
+  PerpetualPosition:
+    "This is a perpetual waqf (waqf mu'abbad). The corpus is endowed permanently and can never be withdrawn — by anyone, including the contract owner.",
+  CompoundTooHigh: "Endowment share exceeds the maximum the contract permits.",
   TenorNotElapsed: "Tenor period has not ended. Funds are still locked.",
   UnbondingNotElapsed: "Unbonding period has not ended. Please wait.",
   NoSurplus: "No yield surplus above principal + buffer yet. Nothing to harvest.",

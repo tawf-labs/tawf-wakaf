@@ -10,15 +10,15 @@ import { AddressChip, Card, Label, Stat } from "./ui";
 
 const vault = CONTRACTS.vault as `0x${string}`;
 
-type HarvestRecord = { block: bigint; toNadzir: bigint; bounty: bigint; caller: string };
+type HarvestRecord = { block: bigint; toNazir: bigint; bounty: bigint; caller: string };
 
-/// Read-only ledger of everything the nadzir has received, reconstructed from `YieldStripped`
+/// Read-only ledger of everything the nazir has received, reconstructed from `YieldStripped`
 /// events.
 ///
 /// Events are the primary way to read onchain history — contract storage only ever holds the
 /// running total, not how it got there. Reading them straight from an RPC rather than through an
 /// indexer keeps the page working with no backend to trust or keep alive.
-export function NadzirView() {
+export function NazirView() {
   const stats = useVaultStats();
   const client = usePublicClient();
   const [records, setRecords] = useState<HarvestRecord[]>([]);
@@ -47,7 +47,7 @@ export function NadzirView() {
           logs
             .map((l: Log & { args?: Record<string, unknown> }) => ({
               block: l.blockNumber ?? 0n,
-              toNadzir: (l.args?.toNadzir as bigint) ?? 0n,
+              toNazir: (l.args?.toNazir as bigint) ?? 0n,
               bounty: (l.args?.bounty as bigint) ?? 0n,
               caller: (l.args?.caller as string) ?? "",
             }))
@@ -84,7 +84,7 @@ export function NadzirView() {
         <div>
           <Label>Nazir Wallet</Label>
           <div className="mt-3">
-            <AddressChip address={stats.nadzir} />
+            <AddressChip address={stats.nazir} />
           </div>
           <p className="mt-2 text-sm text-tawf-muted">
             Proceeds are sent directly to this address by the contract, without intermediaries.
@@ -120,7 +120,7 @@ export function NadzirView() {
                   <tr key={i} className="border-t border-tawf-green/10">
                     <td className="tnum py-3 text-tawf-muted">{r.block.toString()}</td>
                     <td className="tnum py-3 text-tawf-green">
-                      {formatRp(r.toNadzir, stats.decimals)}
+                      {formatRp(r.toNazir, stats.decimals)}
                     </td>
                     <td className="tnum py-3 text-tawf-muted">
                       {formatRp(r.bounty, stats.decimals)}

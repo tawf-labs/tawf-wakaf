@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {SWRBase} from "./SWRBase.t.sol";
 import {SWRVault} from "../src/SWRVault.sol";
-import {IkrarAkadNFT} from "../src/IkrarAkadNFT.sol";
+import {AkadCertificateNFT} from "../src/AkadCertificateNFT.sol";
 import {IYieldAdapter} from "../src/interfaces/IYieldAdapter.sol";
 import {IAggregatorV3} from "../src/interfaces/IAggregatorV3.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -33,11 +33,11 @@ contract SWRVaultTest is SWRBase {
         uint256 amount = idr(1_000_000);
         _deposit(alice, amount, 1);
 
-        assertEq(akad.ownerOf(0), alice, "akad minted to the wakif");
+        assertEq(akad.ownerOf(0), alice, "akad minted to the waqif");
         assertEq(akad.totalMinted(), 1);
 
-        (address wakif, uint256 recorded, uint256 tenor,,) = akad.akads(0);
-        assertEq(wakif, alice);
+        (address waqif, uint256 recorded, uint256 tenor,,) = akad.akads(0);
+        assertEq(waqif, alice);
         assertEq(recorded, amount);
         assertEq(tenor, TENOR_MID, "vault-enforced tenor is recorded on the certificate");
 
@@ -197,7 +197,7 @@ contract SWRVaultTest is SWRBase {
         uint256 payout = vault.claim(posId);
 
         assertEq(payout, amount, "100% of principal returned");
-        assertEq(idrx.balanceOf(alice), balanceBefore, "wakif made whole");
+        assertEq(idrx.balanceOf(alice), balanceBefore, "waqif made whole");
         assertEq(vault.balanceOf(alice), 0, "wqIDRX burned");
         assertEq(vault.totalPrincipal(), 0);
         assertEq(vault.reservedForClaims(), 0);
@@ -227,20 +227,20 @@ contract SWRVaultTest is SWRBase {
         _deposit(alice, idr(10_000_000), 2);
         _accrueYield(3_000); // +30%, comfortably above the 10% buffer
 
-        uint256 nadzirBefore = idrx.balanceOf(nadzir);
+        uint256 nazirBefore = idrx.balanceOf(nazir);
 
         // `keeper` is nobody special — no role, no ownership.
         vm.prank(keeper);
-        (uint256 toNadzir, uint256 bounty) = vault.harvest();
+        (uint256 toNazir, uint256 bounty) = vault.harvest();
 
-        assertGt(toNadzir, 0, "nadzir received yield");
+        assertGt(toNazir, 0, "nazir received yield");
         assertGt(bounty, 0, "caller earned the bounty");
         assertEq(idrx.balanceOf(keeper), bounty, "bounty actually paid");
-        assertEq(idrx.balanceOf(nadzir) - nadzirBefore, toNadzir, "nadzir actually paid");
-        assertEq(vault.totalYieldStripped(), toNadzir);
+        assertEq(idrx.balanceOf(nazir) - nazirBefore, toNazir, "nazir actually paid");
+        assertEq(vault.totalYieldStripped(), toNazir);
 
         // Bounty is the configured slice of what was realised.
-        assertApproxEqRel(bounty, ((toNadzir + bounty) * 50) / 10_000, 0.01e18, "0.5% bounty");
+        assertApproxEqRel(bounty, ((toNazir + bounty) * 50) / 10_000, 0.01e18, "0.5% bounty");
     }
 
     function test_HarvestNeverStripsBelowPrincipalPlusBuffer() public {
@@ -262,7 +262,7 @@ contract SWRVaultTest is SWRBase {
     /// @notice Regression: unwinding costs two swap legs, and that cost must fall on the yield
     ///         being distributed — never on the buffer backing principal. Sizing the payout from
     ///         the pre-unwind NAV left the vault BELOW its own floor after every harvest, quietly
-    ///         funding the nadzir out of the wakif's cushion. Only shows up with a non-zero spread,
+    ///         funding the nazir out of the waqif's cushion. Only shows up with a non-zero spread,
     ///         which is why the zero-spread invariant suite could not see it.
     function test_HarvestWithRealisticSpreadStillEndsAtOrAboveTheFloor() public {
         _setSpread(30); // 0.30%, a realistic DEX fee
@@ -285,10 +285,10 @@ contract SWRVaultTest is SWRBase {
         uint256 floorBefore = vault.harvestFloor();
 
         vm.prank(keeper);
-        (uint256 toNadzir, uint256 bounty) = vault.harvest();
+        (uint256 toNazir, uint256 bounty) = vault.harvest();
 
-        // Expensive swaps shrink what the nadzir receives; they must not shrink the backing.
-        assertGt(toNadzir + bounty, 0, "some yield still reached the nadzir");
+        // Expensive swaps shrink what the nazir receives; they must not shrink the backing.
+        assertGt(toNazir + bounty, 0, "some yield still reached the nazir");
         assertGe(vault.totalNavIDRX(), floorBefore, "principal + buffer intact after a costly unwind");
     }
 
@@ -313,7 +313,7 @@ contract SWRVaultTest is SWRBase {
         vm.expectRevert();
         vault.harvest();
 
-        assertEq(idrx.balanceOf(nadzir), 0, "buffer must be filled before the nadzir is paid");
+        assertEq(idrx.balanceOf(nazir), 0, "buffer must be filled before the nazir is paid");
     }
 
     function test_HarvestDoesNotConsumeReservedClaims() public {
@@ -373,7 +373,7 @@ contract SWRVaultTest is SWRBase {
         // Now let the oracle die completely.
         vm.warp(block.timestamp + UNBONDING + 10 hours);
 
-        // Claim pays from the earmarked reserve and needs no price at all — a wakif's exit does
+        // Claim pays from the earmarked reserve and needs no price at all — a waqif's exit does
         // not depend on the oracle, the keeper, or the team.
         vm.prank(alice);
         uint256 payout = vault.claim(posId);
@@ -408,7 +408,7 @@ contract SWRVaultTest is SWRBase {
         vm.prank(alice);
         uint256 payout = vault.claim(posId);
 
-        // Round-trip swap cost is real money. With no yield to cover it the wakif is slightly
+        // Round-trip swap cost is real money. With no yield to cover it the waqif is slightly
         // short, and the vault records that openly rather than papering over it.
         assertLe(payout, amount);
         assertGe(payout, (amount * 99) / 100, "shortfall bounded by the spread");
@@ -455,7 +455,7 @@ contract SWRVaultTest is SWRBase {
         assertGt(vault.deficit(), 0, "shortfall surfaced");
         assertLt(vault.solvencyRatioBps(), 10_000, "under-collateralised, and says so");
 
-        // A takaful reserve — or anyone — can make the wakif whole.
+        // A takaful reserve — or anyone — can make the waqif whole.
         uint256 shortfall = vault.deficit();
         idrx.mint(address(this), shortfall);
         idrx.approve(address(vault), shortfall);
@@ -472,7 +472,7 @@ contract SWRVaultTest is SWRBase {
         vm.startPrank(alice);
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
-        vault.setNadzir(alice);
+        vault.setNazir(alice);
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         vault.setRiskParams(0, 0, 100, 1 hours);
@@ -487,13 +487,13 @@ contract SWRVaultTest is SWRBase {
 
     function test_RevertWhen_NonVaultMintsAkad() public {
         vm.prank(alice);
-        vm.expectRevert(IkrarAkadNFT.OnlyVault.selector);
+        vm.expectRevert(AkadCertificateNFT.OnlyVault.selector);
         akad.mintAkad(alice, idr(1), 1 days, "FAKE");
     }
 
     function test_RevertWhen_AkadVaultRepointed() public {
         vm.prank(akad.owner());
-        vm.expectRevert(IkrarAkadNFT.VaultAlreadySet.selector);
+        vm.expectRevert(AkadCertificateNFT.VaultAlreadySet.selector);
         akad.setVault(alice);
     }
 
@@ -548,7 +548,7 @@ contract SWRVaultTest is SWRBase {
     //                          Multi-user accounting
     // =====================================================================
 
-    function test_TwoWakifWithDifferentTenorsSettleIndependently() public {
+    function test_TwoWaqifWithDifferentTenorsSettleIndependently() public {
         _setSpread(0);
         uint256 aliceAmount = idr(2_000_000);
         uint256 bobAmount = idr(5_000_000);

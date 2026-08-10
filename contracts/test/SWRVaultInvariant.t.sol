@@ -28,7 +28,7 @@ contract SWRHandler is Test {
     ///      check the vault's own bookkeeping against.
     uint256 public ghostDeposited;
     uint256 public ghostClaimed;
-    uint256 public ghostYieldToNadzir;
+    uint256 public ghostYieldToNazir;
     uint256 public ghostBountyPaid;
     uint256 public ghostPeakSeen;
     /// @dev Count of value-moving operations. Each one routes through a bounded number of integer
@@ -93,8 +93,8 @@ contract SWRHandler is Test {
 
     function harvest() public {
         vm.prank(keeper);
-        try vault.harvest() returns (uint256 toNadzir, uint256 bounty) {
-            ghostYieldToNadzir += toNadzir;
+        try vault.harvest() returns (uint256 toNazir, uint256 bounty) {
+            ghostYieldToNazir += toNazir;
             ghostBountyPaid += bounty;
             ghostValueOps++;
         } catch {}
@@ -184,10 +184,10 @@ contract SWRVaultInvariantTest is SWRBase {
         assertLe(vault.deficit(), _dustAllowance(), "mechanics must not lose principal beyond dust");
     }
 
-    /// @notice Yield paid out to the nadzir and to harvest callers is genuinely surplus — it never
+    /// @notice Yield paid out to the nazir and to harvest callers is genuinely surplus — it never
     ///         comes out of principal. This is the yield-stripping promise, checked structurally.
     function invariant_DistributedYieldNeverCameFromPrincipal() public view {
-        // Everything the vault still holds, plus everything it has already paid out to wakif,
+        // Everything the vault still holds, plus everything it has already paid out to waqif,
         // must cover every rupiah ever deposited — the distributed yield sits strictly on top.
         uint256 backing = vault.totalNavIDRX() + vault.reservedForClaims() + handler.ghostClaimed();
         assertGe(

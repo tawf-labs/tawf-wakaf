@@ -5,7 +5,7 @@ import { bpsToPercent } from "../lib/format";
 import { useVaultStats } from "../lib/useVault";
 
 /// Protocol-health page. Anyone can act here — that is the point, so it is not gated behind a
-/// wakif position or an admin role.
+/// waqif position or an admin role.
 export default function Harvest() {
   const stats = useVaultStats();
 

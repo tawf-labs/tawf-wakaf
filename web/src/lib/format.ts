@@ -65,7 +65,7 @@ export function formatTenor(seconds: bigint): string {
   return `${Math.floor(s / 60)} Minutes`;
 }
 
-export function formatDateID(unixSeconds: number): string {
+export function formatDate(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-US", {
     day: "2-digit",
     month: "long",

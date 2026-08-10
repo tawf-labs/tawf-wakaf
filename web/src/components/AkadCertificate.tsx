@@ -1,6 +1,6 @@
 import { useReadContract } from "wagmi";
 import { CONTRACTS } from "../lib/config";
-import { IkrarAkadNFTAbi } from "../generated/abis";
+import { AkadCertificateNFTAbi } from "../generated/abis";
 import { AddressChip } from "./ui";
 
 const akad = CONTRACTS.akad as `0x${string}`;
@@ -13,7 +13,7 @@ const akad = CONTRACTS.akad as `0x${string}`;
 export function AkadCertificate({ tokenId }: { tokenId: bigint }) {
   const { data: uri, isLoading } = useReadContract({
     address: akad,
-    abi: IkrarAkadNFTAbi,
+    abi: AkadCertificateNFTAbi,
     functionName: "tokenURI",
     args: [tokenId],
   });

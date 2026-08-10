@@ -14,6 +14,9 @@ export type Position = {
   unbondingPeriod: bigint;
   akadTokenId: bigint;
   status: number; // 0 Active, 1 Unbonding, 2 Claimed
+  /// Waqf mu'abbad. Set at deposit, never mutated — a perpetual position stays Active forever
+  /// because nothing can move it out of that state.
+  perpetual: boolean;
 };
 
 /// Vault-wide figures. Polled on a 4s interval — inside the "responsive but not runaway" band;
@@ -28,7 +31,7 @@ export function useVaultStats() {
       { address: vault, abi: SWRVaultAbi, functionName: "solvencyRatioBps" },
       { address: vault, abi: SWRVaultAbi, functionName: "totalYieldStripped" },
       { address: vault, abi: SWRVaultAbi, functionName: "deficit" },
-      { address: vault, abi: SWRVaultAbi, functionName: "nadzir" },
+      { address: vault, abi: SWRVaultAbi, functionName: "nazir" },
       { address: vault, abi: SWRVaultAbi, functionName: "reservedForClaims" },
       { address: vault, abi: SWRVaultAbi, functionName: "unbondingPrincipal" },
       { address: vault, abi: SWRVaultAbi, functionName: "totalAdapterETH" },
@@ -39,6 +42,10 @@ export function useVaultStats() {
       { address: vault, abi: SWRVaultAbi, functionName: "decimals" },
       { address: vault, abi: SWRVaultAbi, functionName: "bufferBps" },
       { address: vault, abi: SWRVaultAbi, functionName: "harvestBountyBps" },
+      { address: vault, abi: SWRVaultAbi, functionName: "perpetualPrincipal" },
+      { address: vault, abi: SWRVaultAbi, functionName: "perpetualCompounded" },
+      { address: vault, abi: SWRVaultAbi, functionName: "perpetualCorpus" },
+      { address: vault, abi: SWRVaultAbi, functionName: "compoundBps" },
     ],
     query: { refetchInterval: 4000 },
   });
@@ -62,7 +69,7 @@ export function useVaultStats() {
     solvencyBps: v<bigint>(4),
     totalYieldStripped: v<bigint>(5),
     deficit: v<bigint>(6),
-    nadzir: v<string>(7),
+    nazir: v<string>(7),
     reservedForClaims: v<bigint>(8),
     unbondingPrincipal: v<bigint>(9),
     adapterEth: v<bigint>(10),
@@ -73,10 +80,14 @@ export function useVaultStats() {
     decimals: v<number>(15) ?? 2,
     bufferBps: v<bigint>(16),
     harvestBountyBps: v<bigint>(17),
+    perpetualPrincipal: v<bigint>(18),
+    perpetualCompounded: v<bigint>(19),
+    perpetualCorpus: v<bigint>(20),
+    compoundBps: v<bigint>(21),
   };
 }
 
-export function useWakif() {
+export function useWaqif() {
   const { address } = useAccount();
 
   const { data: positions, refetch: refetchPositions } = useReadContract({

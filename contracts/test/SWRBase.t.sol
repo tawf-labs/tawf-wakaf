@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {SWRVault} from "../src/SWRVault.sol";
-import {IkrarAkadNFT} from "../src/IkrarAkadNFT.sol";
+import {AkadCertificateNFT} from "../src/AkadCertificateNFT.sol";
 import {WstETHAdapter} from "../src/adapters/WstETHAdapter.sol";
 import {WeETHAdapter} from "../src/adapters/WeETHAdapter.sol";
 import {IYieldAdapter} from "../src/interfaces/IYieldAdapter.sol";
@@ -51,13 +51,13 @@ abstract contract SWRBase is Test {
     MockEtherFiLiquidityPool internal etherFiPool;
     MockWeETH internal weETH;
     MockSwapRouter internal router;
-    IkrarAkadNFT internal akad;
+    AkadCertificateNFT internal akad;
     SWRVault internal vault;
     WstETHAdapter internal wstAdapter;
     WeETHAdapter internal weETHAdapter;
 
     address internal owner = makeAddr("owner");
-    address internal nadzir = makeAddr("nadzir");
+    address internal nazir = makeAddr("nazir");
     address internal alice = makeAddr("alice");
     address internal bob = makeAddr("bob");
     address internal keeper = makeAddr("keeper");
@@ -79,7 +79,7 @@ abstract contract SWRBase is Test {
         router.setEthPegged(address(stETH), true);
         router.setEthPegged(address(eETH), true);
 
-        akad = new IkrarAkadNFT(IDRX_DECIMALS, "IDRX");
+        akad = new AkadCertificateNFT(IDRX_DECIMALS, "IDRX");
 
         uint256[] memory tenors = new uint256[](3);
         tenors[0] = TENOR_SHORT;
@@ -92,7 +92,7 @@ abstract contract SWRBase is Test {
             ISwapRouter(address(router)),
             IAggregatorV3(address(feed)),
             akad,
-            nadzir,
+            nazir,
             tenors,
             UNBONDING,
             owner
@@ -151,6 +151,13 @@ abstract contract SWRBase is Test {
         vm.startPrank(who);
         idrx.approve(address(vault), amount);
         positionId = vault.deposit(amount, tenorIndex);
+        vm.stopPrank();
+    }
+
+    function _depositPerpetual(address who, uint256 amount) internal returns (uint256 positionId) {
+        vm.startPrank(who);
+        idrx.approve(address(vault), amount);
+        positionId = vault.depositPerpetual(amount);
         vm.stopPrank();
     }
 

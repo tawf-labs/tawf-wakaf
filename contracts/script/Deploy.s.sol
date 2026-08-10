@@ -5,7 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {SWRVault} from "../src/SWRVault.sol";
-import {IkrarAkadNFT} from "../src/IkrarAkadNFT.sol";
+import {AkadCertificateNFT} from "../src/AkadCertificateNFT.sol";
 import {WstETHAdapter} from "../src/adapters/WstETHAdapter.sol";
 import {WeETHAdapter} from "../src/adapters/WeETHAdapter.sol";
 import {IYieldAdapter} from "../src/interfaces/IYieldAdapter.sol";
@@ -65,7 +65,7 @@ contract Deploy is Script {
 
     function run() external returns (Deployment memory d) {
         address deployer = msg.sender;
-        address nadzir = vm.envOr("NADZIR_ADDRESS", deployer);
+        address nazir = vm.envOr("NAZIR_ADDRESS", deployer);
         uint256 routerEthSeed = vm.envOr("ROUTER_WETH_SEED", uint256(0.05 ether));
 
         // Short tenors so the whole lifecycle is demoable in minutes. A mainnet script would seed
@@ -79,7 +79,7 @@ contract Deploy is Script {
         console.log("=== SWR deploy ===");
         console.log("chainid  :", block.chainid);
         console.log("deployer :", deployer);
-        console.log("nadzir   :", nadzir);
+        console.log("nazir   :", nazir);
 
         vm.startBroadcast();
 
@@ -106,7 +106,7 @@ contract Deploy is Script {
         router.setEthPegged(address(eETH), true);
 
         // --- core -----------------------------------------------------------
-        IkrarAkadNFT akad = new IkrarAkadNFT(IDRX_DECIMALS, "IDRX");
+        AkadCertificateNFT akad = new AkadCertificateNFT(IDRX_DECIMALS, "IDRX");
 
         SWRVault vault = new SWRVault(
             IERC20(address(idrx)),
@@ -114,7 +114,7 @@ contract Deploy is Script {
             ISwapRouter(address(router)),
             IAggregatorV3(address(feed)),
             akad,
-            nadzir,
+            nazir,
             tenors,
             unbonding,
             deployer
@@ -184,7 +184,7 @@ contract Deploy is Script {
         console.log("");
         console.log("--- addresses ---");
         console.log("SWRVault      :", d.vault);
-        console.log("IkrarAkadNFT  :", d.akad);
+        console.log("AkadCertificateNFT  :", d.akad);
         console.log("MockIDRX      :", d.idrx);
         console.log("WETH          :", d.weth);
         console.log("ETH/IDRX feed :", d.feed);

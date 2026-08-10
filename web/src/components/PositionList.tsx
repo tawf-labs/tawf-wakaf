@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
-import { Clock, FileText, Hourglass, Wallet } from "lucide-react";
+import { Clock, FileText, Hourglass, Infinity as InfinityIcon, Wallet } from "lucide-react";
 import { CONTRACTS } from "../lib/config";
 import { SWRVaultAbi } from "../generated/abis";
-import { formatCountdown, formatDateID, formatRp, formatTenor } from "../lib/format";
+import { formatCountdown, formatDate, formatRp, formatTenor } from "../lib/format";
 import { useOnchainAction } from "../lib/useOnchainAction";
-import { useVaultStats, useWakif, type Position } from "../lib/useVault";
+import { useVaultStats, useWaqif, type Position } from "../lib/useVault";
 import { AkadCertificate } from "./AkadCertificate";
 import { Button, Card, ErrorNote, Label } from "./ui";
 
@@ -41,20 +41,26 @@ function PositionRow({
   const maturesAt = Number(position.depositedAt) + Number(position.tenor);
   const claimableAt = Number(position.unbondingStart) + Number(position.unbondingPeriod);
 
-  const isActive = position.status === 0;
+  // A perpetual position stays Status.Active forever, so `perpetual` has to be tested before
+  // anything derived from status or the tenor clock — its tenor is 0, which would otherwise read
+  // as "matured, ready to withdraw" and offer a button the contract always rejects.
+  const isPerpetual = position.perpetual;
+  const isActive = !isPerpetual && position.status === 0;
   const isUnbonding = position.status === 1;
   const isClaimed = position.status === 2;
 
   const matured = now >= maturesAt;
   const claimable = now >= claimableAt;
 
-  const statusChip = isClaimed
-    ? { text: "Complete", cls: "bg-tawf-green/10 text-tawf-green" }
-    : isUnbonding
-      ? { text: "Unbonding", cls: "bg-amber-100 text-amber-800" }
-      : matured
-        ? { text: "Due", cls: "bg-tawf-gold/20 text-tawf-green" }
-        : { text: "Locked", cls: "bg-tawf-green/5 text-tawf-muted" };
+  const statusChip = isPerpetual
+    ? { text: "Perpetual", cls: "bg-tawf-green text-tawf-sand" }
+    : isClaimed
+      ? { text: "Complete", cls: "bg-tawf-green/10 text-tawf-green" }
+      : isUnbonding
+        ? { text: "Unbonding", cls: "bg-amber-100 text-amber-800" }
+        : matured
+          ? { text: "Due", cls: "bg-tawf-gold/20 text-tawf-green" }
+          : { text: "Locked", cls: "bg-tawf-green/5 text-tawf-muted" };
 
   return (
     <div className="rounded-2xl border border-tawf-green/10 bg-white p-6">
@@ -69,7 +75,8 @@ function PositionRow({
             </span>
           </div>
           <p className="mt-1 text-sm text-tawf-muted">
-            Tenor {formatTenor(position.tenor)} · Akad {formatDateID(Number(position.depositedAt))}
+            {isPerpetual ? "Endowed in perpetuity" : `Tenor ${formatTenor(position.tenor)}`} · Akad{" "}
+            {formatDate(Number(position.depositedAt))}
           </p>
         </div>
 
@@ -78,12 +85,19 @@ function PositionRow({
           className="inline-flex items-center gap-2 text-sm text-tawf-muted transition-colors hover:text-tawf-green"
         >
           <FileText className="h-4 w-4" aria-hidden />
-          {showAkad ? "Hide" : "View"} Ikrar Akad
+          {showAkad ? "Hide" : "View"} Akad Certificate
         </button>
       </div>
 
       {/* Countdown */}
       <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        {isPerpetual && (
+          <span className="inline-flex items-center gap-2 text-tawf-muted">
+            <InfinityIcon className="h-4 w-4" aria-hidden />
+            No maturity and no withdrawal — the corpus is preserved and its yield flows to the
+            Nazir indefinitely.
+          </span>
+        )}
         {isActive && (
           <span className="inline-flex items-center gap-2 text-tawf-muted">
             <Clock className="h-4 w-4" aria-hidden />
@@ -117,8 +131,9 @@ function PositionRow({
         )}
       </div>
 
-      {/* Actions */}
-      {!isClaimed && (
+      {/* Actions. A perpetual position gets none — offering a disabled "Claim Principal" would
+          imply the claim becomes available eventually, and it never does. */}
+      {!isClaimed && !isPerpetual && (
         <div className="mt-5">
           {isActive ? (
             <Button
@@ -181,11 +196,11 @@ function PositionRow({
 
 export function PositionList() {
   const { isConnected } = useAccount();
-  const wakif = useWakif();
+  const waqif = useWaqif();
   const stats = useVaultStats();
 
   const refresh = () => {
-    wakif.refetchAll();
+    waqif.refetchAll();
     stats.refetch();
   };
 
@@ -200,8 +215,8 @@ export function PositionList() {
     );
   }
 
-  const active = wakif.positions.filter((p) => p.status !== 2);
-  const settled = wakif.positions.filter((p) => p.status === 2);
+  const active = waqif.positions.filter((p) => p.status !== 2);
+  const settled = waqif.positions.filter((p) => p.status === 2);
 
   return (
     <div>
@@ -209,7 +224,7 @@ export function PositionList() {
         <div>
           <Label>Your Waqf Positions</Label>
           <h3 className="mt-2 font-serif text-3xl">
-            {formatRp(wakif.wqBalance, stats.decimals)}{" "}
+            {formatRp(waqif.wqBalance, stats.decimals)}{" "}
             <span className="text-lg text-tawf-muted">wqIDRX</span>
           </h3>
         </div>
@@ -218,7 +233,7 @@ export function PositionList() {
         </p>
       </div>
 
-      {wakif.positions.length === 0 ? (
+      {waqif.positions.length === 0 ? (
         <Card sand className="mt-6">
           <p className="text-tawf-muted">
             No waqf positions yet. Start by depositing IDRX next door.
@@ -226,7 +241,7 @@ export function PositionList() {
         </Card>
       ) : (
         <div className="mt-6 space-y-4">
-          {wakif.positions.map((p, i) => (
+          {waqif.positions.map((p, i) => (
             <PositionRow
               key={i}
               position={p}

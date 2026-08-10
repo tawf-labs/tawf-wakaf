@@ -40,6 +40,13 @@ export function HarvestPanel() {
         This function is open to anyone — no admin, no privileged keeper. The caller
         receives a bounty of {bpsToPercent(stats.harvestBountyBps)} from the harvested surplus,
         the remainder goes directly to the Nazir's wallet.
+        {(stats.perpetualPrincipal ?? 0n) > 0n && (
+          <>
+            {" "}
+            While a perpetual endowment exists, {bpsToPercent(stats.compoundBps)} of the surplus is
+            retained to grow the corpus instead of being paid out.
+          </>
+        )}
       </p>
 
       {stats.oracleStale && (
@@ -67,6 +74,22 @@ export function HarvestPanel() {
           hint={solvent ? "principal fully guaranteed" : "below par — see risk notes"}
         />
       </div>
+
+      {(stats.perpetualPrincipal ?? 0n) > 0n && (
+        <div className="mt-8 grid grid-cols-2 gap-6 border-t border-tawf-green/10 pt-6">
+          <Stat
+            label="Perpetual Corpus"
+            value={formatRp(stats.perpetualCorpus, stats.decimals)}
+            hint="endowed permanently, never withdrawn"
+          />
+          <Stat
+            label="Compounded Growth"
+            value={formatRp(stats.perpetualCompounded, stats.decimals)}
+            tone="good"
+            hint={`${bpsToPercent(stats.compoundBps)} of each harvest, retained`}
+          />
+        </div>
+      )}
 
       {hasDeficit && (
         <ErrorNote

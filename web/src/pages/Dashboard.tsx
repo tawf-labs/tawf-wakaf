@@ -4,20 +4,24 @@ import { ArrowRight } from "lucide-react";
 import { PositionList } from "../components/PositionList";
 import { Card, Label, MotionCard, PageHeader, Section, Stat } from "../components/ui";
 import { formatRp } from "../lib/format";
-import { useVaultStats, useWakif } from "../lib/useVault";
+import { useVaultStats, useWaqif } from "../lib/useVault";
 
-/// The wakif's own view. Deliberately separate from the pool page: depositing and managing what
+/// The waqif's own view. Deliberately separate from the pool page: depositing and managing what
 /// you already deposited are different jobs, and mixing them is what made the old single-page
 /// layout hard to read.
 export default function Dashboard() {
   const { isConnected } = useAccount();
   const stats = useVaultStats();
-  const wakif = useWakif();
+  const waqif = useWaqif();
 
-  const active = wakif.positions.filter((p) => p.status === 0);
-  const unbonding = wakif.positions.filter((p) => p.status === 1);
-  const settled = wakif.positions.filter((p) => p.status === 2);
+  // Perpetual positions are Status.Active too, so they have to be split out first or they would
+  // be counted as locked-but-eventually-returnable, which is the one thing they are not.
+  const endowed = waqif.positions.filter((p) => p.perpetual);
+  const active = waqif.positions.filter((p) => !p.perpetual && p.status === 0);
+  const unbonding = waqif.positions.filter((p) => p.status === 1);
+  const settled = waqif.positions.filter((p) => p.status === 2);
 
+  const endowedTotal = endowed.reduce((sum, p) => sum + p.principal, 0n);
   const lockedTotal = active.reduce((sum, p) => sum + p.principal, 0n);
   const unbondingTotal = unbonding.reduce((sum, p) => sum + p.principal, 0n);
 
@@ -39,21 +43,21 @@ export default function Dashboard() {
         <MotionCard>
           <Card className="mt-12 grid grid-cols-2 gap-8 md:grid-cols-4">
             <Stat
-              label="Receipt Balance"
-              value={formatRp(wakif.wqBalance, stats.decimals)}
-              hint="wqIDRX, non-transferable"
+              label="Endowed"
+              value={formatRp(endowedTotal, stats.decimals)}
+              tone="good"
+              hint={`${endowed.length} perpetual · never returned`}
             />
-            <Stat label="Locked" value={formatRp(lockedTotal, stats.decimals)} hint={`${active.length} position(s)`} />
+            <Stat label="Locked" value={formatRp(lockedTotal, stats.decimals)} hint={`${active.length} fixed tenor`} />
             <Stat
               label="Unbonding"
               value={formatRp(unbondingTotal, stats.decimals)}
               hint={`${unbonding.length} position(s)`}
             />
             <Stat
-              label="Completed"
-              value={String(settled.length)}
-              tone="good"
-              hint="principal returned"
+              label="Receipt Balance"
+              value={formatRp(waqif.wqBalance, stats.decimals)}
+              hint={`wqIDRX · ${settled.length} completed`}
             />
           </Card>
         </MotionCard>
@@ -63,7 +67,7 @@ export default function Dashboard() {
         <PositionList />
       </div>
 
-      {isConnected && wakif.positions.length === 0 && (
+      {isConnected && waqif.positions.length === 0 && (
         <div className="mt-8">
           <Link to="/earn" className="btn-primary">
             Make your first deposit

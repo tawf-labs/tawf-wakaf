@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Coins, Droplets, Info } from "lucide-react";
+import { Coins, Droplets, Info, Infinity as InfinityIcon, Lock } from "lucide-react";
 import { CONTRACTS, activeChain } from "../lib/config";
 import { MockIDRXAbi, SWRVaultAbi } from "../generated/abis";
-import { formatRp, formatTenor, parseRp } from "../lib/format";
+import { bpsToPercent, formatRp, formatTenor, parseRp } from "../lib/format";
 import { useOnchainAction } from "../lib/useOnchainAction";
-import { useVaultStats, useWakif } from "../lib/useVault";
+import { useVaultStats, useWaqif } from "../lib/useVault";
 import { Button, Card, ErrorNote, Label, SuccessNote } from "./ui";
 
 const vault = CONTRACTS.vault as `0x${string}`;
@@ -17,13 +17,16 @@ export function DepositCard() {
   const chainId = useChainId();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   const stats = useVaultStats();
-  const wakif = useWakif();
+  const waqif = useWaqif();
 
   const [amountInput, setAmountInput] = useState("100000");
   const [tenorIndex, setTenorIndex] = useState(0);
+  /// Perpetual is the default. Waqf in its classical form is perpetual and irrevocable; the
+  /// fixed-tenor product is the accommodation, not the other way round.
+  const [perpetual, setPerpetual] = useState(true);
 
   const refresh = () => {
-    wakif.refetchAll();
+    waqif.refetchAll();
     stats.refetch();
   };
 
@@ -37,8 +40,8 @@ export function DepositCard() {
   const amount = useMemo(() => parseRp(amountInput, decimals), [amountInput, decimals]);
 
   const wrongNetwork = isConnected && chainId !== activeChain.id;
-  const needsApproval = amount > 0n && wakif.allowance < amount;
-  const insufficient = wakif.idrxBalance !== undefined && amount > wakif.idrxBalance;
+  const needsApproval = amount > 0n && waqif.allowance < amount;
+  const insufficient = waqif.idrxBalance !== undefined && amount > waqif.idrxBalance;
   const belowMin = stats.minDeposit !== undefined && amount > 0n && amount < stats.minDeposit;
 
   const ethEstimate = stats.nav !== undefined && amount > 0n ? amount : 0n;
@@ -54,9 +57,52 @@ export function DepositCard() {
       </div>
 
       <p className="mt-3 text-tawf-muted">
-        Your principal is returned 100% after the tenor and unbonding period are complete.
-        Only the yield above principal is distributed to the Nazir.
+        {perpetual
+          ? "A perpetual endowment. The corpus is given permanently — it is never returned to you — and is preserved on-chain so its yield can reach the Nazir indefinitely."
+          : "Your principal is returned 100% after the tenor and unbonding period are complete. Only the yield above principal is distributed to the Nazir."}
       </p>
+
+      {/* Akad type. Chosen first, because it changes what every field below means. */}
+      <div className="mt-8">
+        <span className="label-caps">Akad Type</span>
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            onClick={() => setPerpetual(true)}
+            aria-pressed={perpetual}
+            className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+              perpetual
+                ? "border-tawf-green bg-tawf-green text-tawf-sand"
+                : "border-tawf-green/15 bg-white text-tawf-ink hover:border-tawf-green/40"
+            }`}
+          >
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <InfinityIcon className="h-4 w-4" aria-hidden />
+              Perpetual
+            </span>
+            <span className={`mt-1 block text-xs ${perpetual ? "text-tawf-sand/70" : "text-tawf-muted"}`}>
+              Waqf mu'abbad — irrevocable, never withdrawn
+            </span>
+          </button>
+
+          <button
+            onClick={() => setPerpetual(false)}
+            aria-pressed={!perpetual}
+            className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+              !perpetual
+                ? "border-tawf-green bg-tawf-green text-tawf-sand"
+                : "border-tawf-green/15 bg-white text-tawf-ink hover:border-tawf-green/40"
+            }`}
+          >
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Lock className="h-4 w-4" aria-hidden />
+              Fixed Tenor
+            </span>
+            <span className={`mt-1 block text-xs ${!perpetual ? "text-tawf-sand/70" : "text-tawf-muted"}`}>
+              Waqf mu'aqqat — principal returned after the term
+            </span>
+          </button>
+        </div>
+      </div>
 
       {/* Amount */}
       <div className="mt-8">
@@ -76,7 +122,7 @@ export function DepositCard() {
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-tawf-muted">
           <span>
-            Balance: <span className="tnum">{formatRp(wakif.idrxBalance, decimals)}</span>
+            Balance: <span className="tnum">{formatRp(waqif.idrxBalance, decimals)}</span>
           </span>
           {ethEstimate > 0n && (
             <span className="tnum">≈ {formatRp(amount, decimals)} will be locked</span>
@@ -84,33 +130,52 @@ export function DepositCard() {
         </div>
       </div>
 
-      {/* Tenor */}
-      <div className="mt-6">
-        <span className="label-caps">Choose Tenor</span>
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          {(stats.tenors ?? []).map((t, i) => (
-            <button
-              key={i}
-              onClick={() => setTenorIndex(i)}
-              aria-pressed={tenorIndex === i}
-              className={`rounded-2xl border px-3 py-3 text-sm transition-colors ${
-                tenorIndex === i
-                  ? "border-tawf-green bg-tawf-green text-tawf-sand"
-                  : "border-tawf-green/15 bg-white text-tawf-ink hover:border-tawf-green/40"
-              }`}
-              style={{ minHeight: 44 }}
-            >
-              {formatTenor(t)}
-            </button>
-          ))}
+      {/* Tenor — only meaningful for the fixed-term akad. */}
+      {perpetual ? (
+        <div className="mt-6 rounded-2xl border border-tawf-green/15 bg-tawf-sand/40 p-5">
+          <p className="flex items-start gap-2 text-sm text-tawf-muted">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <span>
+              There is no tenor and no unbonding period, because there is no withdrawal. The
+              contract has no function that returns a perpetual corpus — not to you, and not to the
+              owner.{" "}
+              <span className="text-tawf-green">
+                {stats.compoundBps !== undefined
+                  ? `${bpsToPercent(stats.compoundBps)} of each harvest is retained to grow the endowment;`
+                  : "A share of each harvest is retained to grow the endowment;"}{" "}
+                the rest goes to the Nazir.
+              </span>
+            </span>
+          </p>
         </div>
-        <p className="mt-2 flex items-start gap-2 text-sm text-tawf-muted">
-          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          Funds are fully locked during the tenor. After that there is still an unbonding period{" "}
-          {stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "—"} before the principal
-          can be claimed.
-        </p>
-      </div>
+      ) : (
+        <div className="mt-6">
+          <span className="label-caps">Choose Tenor</span>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {(stats.tenors ?? []).map((t, i) => (
+              <button
+                key={i}
+                onClick={() => setTenorIndex(i)}
+                aria-pressed={tenorIndex === i}
+                className={`rounded-2xl border px-3 py-3 text-sm transition-colors ${
+                  tenorIndex === i
+                    ? "border-tawf-green bg-tawf-green text-tawf-sand"
+                    : "border-tawf-green/15 bg-white text-tawf-ink hover:border-tawf-green/40"
+                }`}
+                style={{ minHeight: 44 }}
+              >
+                {formatTenor(t)}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 flex items-start gap-2 text-sm text-tawf-muted">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            Funds are fully locked during the tenor. After that there is still an unbonding period{" "}
+            {stats.unbondingPeriod ? formatTenor(stats.unbondingPeriod) : "—"} before the principal
+            can be claimed.
+          </p>
+        </div>
+      )}
 
       {/* Four-state action flow: connect -> switch network -> approve -> deposit.
           One primary action visible at a time, and the network check comes first. */}
@@ -161,16 +226,25 @@ export function DepositCard() {
             busyLabel={deposit.isConfirming ? "Waiting for confirmation…" : "Sending…"}
             disabled={amount === 0n || insufficient || belowMin}
             onClick={() =>
-              deposit.execute({
-                address: vault,
-                abi: SWRVaultAbi,
-                functionName: "deposit",
-                args: [amount, BigInt(tenorIndex)],
-              })
+              deposit.execute(
+                perpetual
+                  ? {
+                      address: vault,
+                      abi: SWRVaultAbi,
+                      functionName: "depositPerpetual",
+                      args: [amount],
+                    }
+                  : {
+                      address: vault,
+                      abi: SWRVaultAbi,
+                      functionName: "deposit",
+                      args: [amount, BigInt(tenorIndex)],
+                    },
+              )
             }
             className="w-full"
           >
-            Waqf {formatRp(amount, decimals)}
+            {perpetual ? "Endow" : "Waqf"} {formatRp(amount, decimals)}
           </Button>
         )}
 
@@ -202,11 +276,21 @@ export function DepositCard() {
 
       {deposit.justSucceeded && (
         <SuccessNote>
-          Waqf recorded on-chain. The Akad Pledge Certificate has been minted to your wallet.
+          {perpetual
+            ? "Endowment recorded on-chain and now irrevocable. The Akad Certificate has been minted to your wallet."
+            : "Waqf recorded on-chain. The Akad Certificate has been minted to your wallet."}
         </SuccessNote>
       )}
       {approve.justSucceeded && <SuccessNote>Approval successful. Continue to waqf deposit.</SuccessNote>}
       {faucet.justSucceeded && <SuccessNote>Testnet IDRX received.</SuccessNote>}
+
+      {perpetual && (
+        <p className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          This cannot be undone. Once confirmed there is no function on this contract — for you,
+          for the Nazir, or for the owner — that returns a perpetual corpus. Choose Fixed Tenor if
+          you may want the money back.
+        </p>
+      )}
 
       <p className="mt-6 border-t border-tawf-green/10 pt-4 text-xs text-tawf-muted">
         Please be aware: the amount, tenor, and your wallet address are publicly recorded on

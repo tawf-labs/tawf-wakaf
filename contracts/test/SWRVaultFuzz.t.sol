@@ -64,7 +64,7 @@ contract SWRVaultFuzzTest is SWRBase {
         uint256 payout = vault.claim(posId);
 
         assertEq(payout, amount, "full principal returned");
-        assertEq(idrx.balanceOf(alice), balanceBefore, "wakif made whole");
+        assertEq(idrx.balanceOf(alice), balanceBefore, "waqif made whole");
         assertEq(vault.balanceOf(alice), 0, "receipts burned");
     }
 
@@ -131,9 +131,9 @@ contract SWRVaultFuzzTest is SWRBase {
         _accrueYield(yieldBps);
 
         vm.prank(keeper);
-        (uint256 toNadzir, uint256 bounty) = vault.harvest();
+        (uint256 toNazir, uint256 bounty) = vault.harvest();
 
-        uint256 total = toNadzir + bounty;
+        uint256 total = toNazir + bounty;
         assertLe(bounty, (total * bountyBps) / 10_000 + 1, "bounty capped at its configured share");
         assertEq(idrx.balanceOf(keeper), bounty);
     }

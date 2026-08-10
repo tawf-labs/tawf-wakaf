@@ -1,4 +1,4 @@
-import { NadzirView } from "../components/NadzirView";
+import { NazirView } from "../components/NazirView";
 import { Label, MotionCard, PageHeader, Section } from "../components/ui";
 import { formatRp } from "../lib/format";
 import { useVaultStats } from "../lib/useVault";
@@ -26,7 +26,7 @@ export default function Nazir() {
 
       <div className="mt-12">
         <MotionCard>
-          <NadzirView />
+          <NazirView />
         </MotionCard>
       </div>
     </Section>

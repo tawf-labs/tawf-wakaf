@@ -11,11 +11,11 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IYieldAdapter} from "./interfaces/IYieldAdapter.sol";
 import {ISwapRouter, IWETH} from "./interfaces/ISwapRouter.sol";
 import {IAggregatorV3} from "./interfaces/IAggregatorV3.sol";
-import {IkrarAkadNFT} from "./IkrarAkadNFT.sol";
+import {AkadCertificateNFT} from "./AkadCertificateNFT.sol";
 
-/// @title SWR Vault — Staking Wakaf Ritel
-/// @notice Retail cash-waqf vault. A wakif deposits IDRX and picks a tenor; the vault routes the
-///         deposit across a basket of liquid-staking venues, strips NAV surplus to the nadzir
+/// @title SWR Vault — Staking Waqf Ritel
+/// @notice Retail cash-waqf vault. A waqif deposits IDRX and picks a tenor; the vault routes the
+///         deposit across a basket of liquid-staking venues, strips NAV surplus to the nazir
 ///         wallet, and returns 100% of the principal after tenor + unbonding.
 ///
 /// ## The honest risk, stated up front
@@ -29,8 +29,8 @@ import {IkrarAkadNFT} from "./IkrarAkadNFT.sol";
 ///
 /// `harvest()` is permissionless and pays a bounty from the surplus it strips. There is no cron and
 /// no privileged keeper: the diagram's "Keeper Node" is a convenience caller competing with anyone
-/// else who wants the bounty. No admin key sits on the path between yield and the nadzir, and
-/// `claim()` has no pause and no owner gate, so a wakif's exit never depends on this team existing.
+/// else who wants the bounty. No admin key sits on the path between yield and the nazir, and
+/// `claim()` has no pause and no owner gate, so a waqif's exit never depends on this team existing.
 ///
 /// ## wqIDRX
 ///
@@ -42,6 +42,9 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
     uint256 internal constant BPS = 10_000;
     uint256 internal constant WAD = 1e18;
+    /// @dev Half of every harvest is the most the endowment may ever retain. Above this the
+    ///      beneficiary stops being a beneficiary in any meaningful sense.
+    uint256 public constant MAX_COMPOUND_BPS = 5_000;
 
     enum Status {
         Active,
@@ -52,7 +55,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     /// @dev Packed into 3 slots. uint128 caps principal at ~3.4e38 base units — far beyond any
     ///      plausible rupiah figure even at 18 decimals.
     struct Position {
-        uint128 principal; // IDRX base units owed to the wakif
+        uint128 principal; // IDRX base units owed to the waqif
         uint128 reserved; // IDRX actually set aside at requestUnstake
         uint64 depositedAt;
         uint64 tenor; // seconds; snapshotted, so later config changes cannot extend a live lock
@@ -60,6 +63,11 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         uint64 unbondingPeriod; // seconds; snapshotted for the same reason
         uint64 akadTokenId;
         Status status;
+        /// @dev Waqf mu'abbad — an irrevocable endowment. The corpus is never returned, so
+        ///      `requestUnstake` and `claim` are permanently closed to this position. Set once at
+        ///      deposit and never mutated; there is deliberately no function that can flip it,
+        ///      in either direction.
+        bool perpetual;
     }
 
     // --- immutable wiring -------------------------------------------------
@@ -67,13 +75,13 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     IERC20 public immutable idrx;
     uint8 public immutable idrxDecimals;
     IWETH public immutable weth;
-    IkrarAkadNFT public immutable akad;
+    AkadCertificateNFT public immutable akad;
 
     // --- configurable wiring ----------------------------------------------
 
     ISwapRouter public router;
     IAggregatorV3 public ethIdrxFeed;
-    address public nadzir;
+    address public nazir;
 
     IYieldAdapter[] public adapters;
     /// @notice Basis points of each deposit routed to `adapters[i]`. The unallocated remainder
@@ -86,6 +94,10 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
     uint256 public bufferBps = 1_000; // 10% cushion held over principal before any yield leaves
     uint256 public harvestBountyBps = 50; // 0.5% of stripped surplus to whoever calls harvest()
+    /// @notice Share of each harvest's surplus retained to grow the perpetual endowment instead of
+    ///         being paid out. Capped at `MAX_COMPOUND_BPS` so the nazir can never be starved by
+    ///         an owner who sets it to 100%.
+    uint256 public compoundBps = 3_000; // 30%
     uint256 public maxSlippageBps = 100; // 1% floor on every swap; never 0
     uint256 public maxOracleAge = 3 hours;
     uint256 public minDeposit;
@@ -104,30 +116,44 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     uint256 public unbondingPrincipal;
     /// @notice IDRX earmarked for positions already in unbonding. Excluded from working NAV.
     uint256 public reservedForClaims;
-    /// @notice Lifetime IDRX delivered to the nadzir.
+    /// @notice Lifetime IDRX delivered to the nazir.
     uint256 public totalYieldStripped;
     /// @notice Cumulative principal that could not be reserved in full — the FX risk, made visible.
     uint256 public deficit;
     /// @notice Highest NAV-per-principal ever observed, in WAD. Reporting only, never a gate.
     uint256 public peakNavPerPrincipalWad;
 
+    /// @notice Sum of every perpetual position's deposited principal. Never decreases: a waqf
+    ///         mu'abbad position has no exit, so nothing ever leaves this figure.
+    uint256 public perpetualPrincipal;
+    /// @notice Harvest surplus retained to grow the endowment rather than paid to the nazir.
+    ///         Counted in the harvest floor, so once compounded it is as protected as principal
+    ///         and can never be stripped back out.
+    uint256 public perpetualCompounded;
+
     // --- events -----------------------------------------------------------
 
     event Deposited(
-        address indexed wakif, uint256 indexed positionId, uint256 amount, uint256 tenor, uint256 akadTokenId
+        address indexed waqif, uint256 indexed positionId, uint256 amount, uint256 tenor, uint256 akadTokenId
     );
+    /// @dev A separate event rather than a flag on `Deposited`, so existing consumers of that
+    ///      topic keep working unchanged and an indexer can tell the two akad types apart without
+    ///      decoding a tenor of zero and guessing what it meant.
+    event PerpetualDeposited(address indexed waqif, uint256 indexed positionId, uint256 amount, uint256 akadTokenId);
+    event Compounded(uint256 retained, uint256 perpetualCorpus);
     event Routed(uint256 indexed adapterIndex, uint256 idrxIn, uint256 ethStaked);
     event UnstakeRequested(
-        address indexed wakif, uint256 indexed positionId, uint256 reserved, uint256 claimableAt
+        address indexed waqif, uint256 indexed positionId, uint256 reserved, uint256 claimableAt
     );
-    event Claimed(address indexed wakif, uint256 indexed positionId, uint256 payout, uint256 principal);
-    event YieldStripped(address indexed caller, address indexed nadzir, uint256 toNadzir, uint256 bounty, uint256 nav);
-    event ShortfallRecorded(address indexed wakif, uint256 indexed positionId, uint256 missing);
+    event Claimed(address indexed waqif, uint256 indexed positionId, uint256 payout, uint256 principal);
+    event YieldStripped(address indexed caller, address indexed nazir, uint256 toNazir, uint256 bounty, uint256 nav);
+    event ShortfallRecorded(address indexed waqif, uint256 indexed positionId, uint256 missing);
     event ToppedUp(address indexed from, uint256 amount, uint256 remainingDeficit);
-    event NadzirUpdated(address indexed nadzir);
+    event NazirUpdated(address indexed nazir);
     event AdaptersUpdated(uint256 adapterCount, uint256 totalWeightBps);
     event TenorOptionsUpdated(uint256[] tenors, uint256 unbondingPeriod);
     event RiskParamsUpdated(uint256 bufferBps, uint256 harvestBountyBps, uint256 maxSlippageBps, uint256 maxOracleAge);
+    event CompoundBpsUpdated(uint256 compoundBps);
     event OracleUpdated(address indexed feed, uint256 maxOracleAge);
     event RouterUpdated(address indexed router);
 
@@ -140,6 +166,11 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     error NoSuchPosition(uint256 positionId);
     error PositionNotActive();
     error PositionNotUnbonding();
+    /// @dev Raised on any attempt to withdraw a waqf mu'abbad position. Distinct from
+    ///      `PositionNotActive` so the caller learns the corpus is irrevocable by design, not that
+    ///      they picked the wrong moment.
+    error PerpetualPosition();
+    error CompoundTooHigh(uint256 given, uint256 maximum);
     error TenorNotElapsed(uint256 maturesAt);
     error UnbondingNotElapsed(uint256 claimableAt);
     error NoSurplus(uint256 nav, uint256 floor);
@@ -157,15 +188,15 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         IWETH _weth,
         ISwapRouter _router,
         IAggregatorV3 _ethIdrxFeed,
-        IkrarAkadNFT _akad,
-        address _nadzir,
+        AkadCertificateNFT _akad,
+        address _nazir,
         uint256[] memory _tenorOptions,
         uint256 _unbondingPeriod,
         address _owner
-    ) ERC20("Wakaf Staked IDRX", "wqIDRX") Ownable(_owner) {
+    ) ERC20("Waqf Staked IDRX", "wqIDRX") Ownable(_owner) {
         if (
             address(_idrx) == address(0) || address(_weth) == address(0) || address(_router) == address(0)
-                || address(_ethIdrxFeed) == address(0) || address(_akad) == address(0) || _nadzir == address(0)
+                || address(_ethIdrxFeed) == address(0) || address(_akad) == address(0) || _nazir == address(0)
         ) revert ZeroAddress();
         if (_tenorOptions.length == 0) revert ZeroAmount();
 
@@ -175,7 +206,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         router = _router;
         ethIdrxFeed = _ethIdrxFeed;
         akad = _akad;
-        nadzir = _nadzir;
+        nazir = _nazir;
         tenorOptions = _tenorOptions;
         unbondingPeriod = _unbondingPeriod;
 
@@ -204,15 +235,56 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     // =====================================================================
-    //                              Wakif flow
+    //                              Waqif flow
     // =====================================================================
 
     /// @notice Deposit IDRX and lock it for the chosen tenor.
     /// @param amount IDRX base units
     /// @param tenorIndex index into `tenorOptions`
     function deposit(uint256 amount, uint256 tenorIndex) external nonReentrant returns (uint256 positionId) {
-        if (amount == 0) revert ZeroAmount();
         if (tenorIndex >= tenorOptions.length) revert InvalidTenorIndex(tenorIndex, tenorOptions.length);
+
+        uint256 tenor = tenorOptions[tenorIndex];
+        uint256 received;
+        uint256 akadTokenId;
+        (positionId, received, akadTokenId) = _open(amount, tenor, false, _poolLabel(tenorIndex));
+
+        emit Deposited(msg.sender, positionId, received, tenor, akadTokenId);
+
+        _route(received);
+    }
+
+    /// @notice Endow IDRX permanently — waqf mu'abbad. The corpus is never returned.
+    ///
+    /// @dev This is a one-way door and the contract treats it as one: there is no tenor to wait
+    ///      out, no unbonding queue, and `requestUnstake` reverts for the life of the position.
+    ///      The corpus still counts toward the harvest floor, so it is preserved rather than spent
+    ///      — only the yield above it ever reaches the nazir, and a configurable share of that
+    ///      yield is retained to grow the endowment itself.
+    ///
+    ///      There is deliberately no admin path to unwind one of these. An owner who could return
+    ///      an irrevocable endowment on request is an owner the waqif has to trust, which is the
+    ///      thing this design exists to avoid.
+    function depositPerpetual(uint256 amount) external nonReentrant returns (uint256 positionId) {
+        uint256 received;
+        uint256 akadTokenId;
+        (positionId, received, akadTokenId) = _open(amount, 0, true, PERPETUAL_POOL);
+
+        perpetualPrincipal += received;
+
+        emit PerpetualDeposited(msg.sender, positionId, received, akadTokenId);
+
+        _route(received);
+    }
+
+    /// @dev Everything the two akad types share. Kept as one body so a change to the accounting,
+    ///      the CEI ordering or the fee-on-transfer measurement cannot land on one path and miss
+    ///      the other.
+    function _open(uint256 amount, uint256 tenor, bool perpetual, string memory poolLabel)
+        private
+        returns (uint256 positionId, uint256 received, uint256 akadTokenId)
+    {
+        if (amount == 0) revert ZeroAmount();
         if (amount < minDeposit) revert BelowMinimum(amount, minDeposit);
         if (adapters.length == 0) revert NoAdapters();
 
@@ -220,11 +292,10 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         // deflationary asset would otherwise mint receipts against money the vault never received.
         uint256 balanceBefore = idrx.balanceOf(address(this));
         idrx.safeTransferFrom(msg.sender, address(this), amount);
-        uint256 received = idrx.balanceOf(address(this)) - balanceBefore;
+        received = idrx.balanceOf(address(this)) - balanceBefore;
         if (received == 0) revert ZeroAmount();
         if (received > type(uint128).max) revert AmountTooLarge();
 
-        uint256 tenor = tenorOptions[tenorIndex];
         positionId = _positions[msg.sender].length;
 
         // EFFECTS first. `akad.mintAkad` ends in `_safeMint`, which invokes `onERC721Received` on
@@ -238,9 +309,12 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
                 depositedAt: uint64(block.timestamp),
                 tenor: uint64(tenor),
                 unbondingStart: 0,
-                unbondingPeriod: uint64(unbondingPeriod),
+                // A perpetual position never unbonds, so snapshotting the period would only invite
+                // a reader to compute a claim date that will never arrive.
+                unbondingPeriod: perpetual ? 0 : uint64(unbondingPeriod),
                 akadTokenId: 0,
-                status: Status.Active
+                status: Status.Active,
+                perpetual: perpetual
             })
         );
 
@@ -249,12 +323,8 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
         // INTERACTIONS. The certificate id is cosmetic — it links the position to its akad NFT
         // and gates nothing, so writing it back after the mint costs no safety.
-        uint256 akadTokenId = akad.mintAkad(msg.sender, received, tenor, _poolLabel(tenorIndex));
+        akadTokenId = akad.mintAkad(msg.sender, received, tenor, poolLabel);
         _positions[msg.sender][positionId].akadTokenId = uint64(akadTokenId);
-
-        emit Deposited(msg.sender, positionId, received, tenor, akadTokenId);
-
-        _route(received);
     }
 
     /// @notice Start the unbonding clock. Only after the tenor has fully elapsed.
@@ -270,6 +340,9 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     ///      README rather than suppressed.
     function requestUnstake(uint256 positionId) external nonReentrant {
         Position storage p = _getPosition(msg.sender, positionId);
+        // Checked before the status test so an endowment reports why it can never be withdrawn,
+        // rather than the misleading "not active".
+        if (p.perpetual) revert PerpetualPosition();
         if (p.status != Status.Active) revert PositionNotActive();
 
         uint256 maturesAt = uint256(p.depositedAt) + p.tenor;
@@ -334,11 +407,11 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     //                          Permissionless yield
     // =====================================================================
 
-    /// @notice Strip NAV surplus to the nadzir. Callable by anyone; the caller keeps
+    /// @notice Strip NAV surplus to the nazir. Callable by anyone; the caller keeps
     ///         `harvestBountyBps` of what they realise.
     /// @dev Only the amount above principal + buffer is ever touched, so a harvest can never
     ///      reduce the vault's backing of principal below the cushion.
-    function harvest() external nonReentrant returns (uint256 toNadzir, uint256 bounty) {
+    function harvest() external nonReentrant returns (uint256 toNazir, uint256 bounty) {
         uint256 nav = totalNavIDRX();
         uint256 floor = harvestFloor();
 
@@ -346,9 +419,16 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
         if (nav <= floor) revert NoSurplus(nav, floor);
         uint256 surplus = nav - floor;
-        if (surplus < minHarvest) revert SurplusTooSmall(surplus, minHarvest);
 
-        uint256 realised = _liquidateToIdrx(surplus);
+        // The endowment's share is left where it already is — invested in the basket — rather than
+        // unwound to IDRX and immediately re-staked. A round trip through the swap desk would pay
+        // spread twice to end up in the same position. So only the payable remainder is liquidated;
+        // `retain` is credited to the corpus as a bookkeeping entry against value that never moved.
+        uint256 retain = perpetualPrincipal > 0 ? (surplus * compoundBps) / BPS : 0;
+        uint256 payable_ = surplus - retain;
+        if (payable_ < minHarvest) revert SurplusTooSmall(payable_, minHarvest);
+
+        uint256 realised = _liquidateToIdrx(payable_);
         if (realised == 0) revert NoSurplus(nav, floor);
 
         // Re-measure AFTER the unwind, and distribute only the amount by which NAV still exceeds
@@ -356,30 +436,42 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         //
         // Unwinding crosses two swap legs and is not free. Sizing the payout from the pre-unwind
         // NAV would charge that cost to the buffer backing principal — the vault would end a
-        // harvest *below* its own floor, quietly funding the nadzir out of the wakif's cushion.
+        // harvest *below* its own floor, quietly funding the nazir out of the waqif's cushion.
         // Measuring afterwards makes the cost fall on the yield being distributed, where it
         // belongs. `floor` is unchanged here because no principal moved during liquidation.
         //
         // The payout is IDRX leaving 1:1 with no conversion, so post-harvest NAV lands exactly on
         // the floor rather than approximately on it.
+        //
+        // Crediting the corpus raises the floor by exactly `retain`, so the payout must clear the
+        // POST-compounding floor, not the one measured on entry. Clamping against `floorAfter`
+        // is what makes "a harvest never leaves the vault below its floor" hold for compounding
+        // harvests too: distributable <= navAfter - floorAfter, hence navAfter - distributable
+        // >= floorAfter, which is the floor in force once this call returns.
         uint256 navAfter = totalNavIDRX();
-        uint256 distributable = navAfter > floor ? navAfter - floor : 0;
+        uint256 floorAfter = floor + retain;
+        uint256 distributable = navAfter > floorAfter ? navAfter - floorAfter : 0;
         if (distributable > realised) distributable = realised;
-        if (distributable == 0) revert NoSurplus(navAfter, floor);
+        if (distributable == 0) revert NoSurplus(navAfter, floorAfter);
 
         bounty = (distributable * harvestBountyBps) / BPS;
-        toNadzir = distributable - bounty;
+        toNazir = distributable - bounty;
 
-        totalYieldStripped += toNadzir;
+        totalYieldStripped += toNazir;
 
-        emit YieldStripped(msg.sender, nadzir, toNadzir, bounty, nav);
+        if (retain > 0) {
+            perpetualCompounded += retain;
+            emit Compounded(retain, perpetualPrincipal + perpetualCompounded);
+        }
+
+        emit YieldStripped(msg.sender, nazir, toNazir, bounty, nav);
 
         if (bounty > 0) idrx.safeTransfer(msg.sender, bounty);
-        if (toNadzir > 0) idrx.safeTransfer(nadzir, toNadzir);
+        if (toNazir > 0) idrx.safeTransfer(nazir, toNazir);
     }
 
     /// @notice Donate IDRX to close a recorded deficit. Permissionless — a takaful reserve, the
-    ///         nadzir, or anyone at all can make wakif whole.
+    ///         nazir, or anyone at all can make waqif whole.
     function topUp(uint256 amount) external nonReentrant {
         if (amount == 0) revert ZeroAmount();
         idrx.safeTransferFrom(msg.sender, address(this), amount);
@@ -410,9 +502,20 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         return totalPrincipal > unbondingPrincipal ? totalPrincipal - unbondingPrincipal : 0;
     }
 
-    /// @notice NAV must exceed this before any yield may leave for the nadzir.
+    /// @notice NAV must exceed this before any yield may leave for the nazir.
+    ///
+    /// @dev `perpetualCompounded` is added at par, deliberately without a buffer on top. The buffer
+    ///      exists to cushion principal that someone will one day walk up and withdraw; endowment
+    ///      growth is never withdrawn, so it needs protection from being stripped, not a reserve
+    ///      against redemption. Buffering it as well would also make the floor rise faster than a
+    ///      harvest can fund, so every compounding harvest would end the vault below its own floor.
     function harvestFloor() public view returns (uint256) {
-        return workingPrincipal() + requiredBuffer();
+        return workingPrincipal() + requiredBuffer() + perpetualCompounded;
+    }
+
+    /// @notice The endowment as it stands: what was given, plus what has been retained to grow it.
+    function perpetualCorpus() public view returns (uint256) {
+        return perpetualPrincipal + perpetualCompounded;
     }
 
     function requiredBuffer() public view returns (uint256) {
@@ -421,23 +524,27 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
     /// @notice Total backing as basis points of total obligation. 10000 = exactly fully backed.
     /// @dev Counts earmarked claim reserves as backing, because they are: they are IDRX sitting
-    ///      here with a specific wakif's name on them.
+    ///      here with a specific waqif's name on them.
+    /// @dev Compounded endowment growth is counted as an obligation alongside principal: once
+    ///      retained it may never be paid out, so a vault that could not cover it is not fully
+    ///      backed, and saying otherwise would flatter the ratio exactly when it matters.
     function solvencyRatioBps() external view returns (uint256) {
-        if (totalPrincipal == 0) return BPS;
-        return ((totalNavIDRX() + reservedForClaims) * BPS) / totalPrincipal;
+        uint256 owed = totalPrincipal + perpetualCompounded;
+        if (owed == 0) return BPS;
+        return ((totalNavIDRX() + reservedForClaims) * BPS) / owed;
     }
 
-    function positionsOf(address wakif) external view returns (Position[] memory) {
-        return _positions[wakif];
+    function positionsOf(address waqif) external view returns (Position[] memory) {
+        return _positions[waqif];
     }
 
-    function positionCount(address wakif) external view returns (uint256) {
-        return _positions[wakif].length;
+    function positionCount(address waqif) external view returns (uint256) {
+        return _positions[waqif].length;
     }
 
-    function getPosition(address wakif, uint256 positionId) external view returns (Position memory) {
-        if (positionId >= _positions[wakif].length) revert NoSuchPosition(positionId);
-        return _positions[wakif][positionId];
+    function getPosition(address waqif, uint256 positionId) external view returns (Position memory) {
+        if (positionId >= _positions[waqif].length) revert NoSuchPosition(positionId);
+        return _positions[waqif][positionId];
     }
 
     function tenorOptionsList() external view returns (uint256[] memory) {
@@ -479,9 +586,9 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     //                                Internals
     // =====================================================================
 
-    function _getPosition(address wakif, uint256 positionId) private view returns (Position storage) {
-        if (positionId >= _positions[wakif].length) revert NoSuchPosition(positionId);
-        return _positions[wakif][positionId];
+    function _getPosition(address waqif, uint256 positionId) private view returns (Position storage) {
+        if (positionId >= _positions[waqif].length) revert NoSuchPosition(positionId);
+        return _positions[waqif][positionId];
     }
 
     /// @dev IDRX held here that is NOT already promised to an unbonding position.
@@ -586,6 +693,9 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         obtainedIdrx = _swapEthToIdrx(ethGot);
     }
 
+    /// @dev Pool label stamped onto a perpetual position's akad certificate.
+    string internal constant PERPETUAL_POOL = "SWR-PERPETUAL";
+
     function _poolLabel(uint256 tenorIndex) private pure returns (string memory) {
         if (tenorIndex == 0) return "SWR-01";
         if (tenorIndex == 1) return "SWR-02";
@@ -600,10 +710,10 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     // Every lever below is enumerated in the CROPS record in the README. None of them can move
     // principal, touch `reservedForClaims`, or block `claim()`.
 
-    function setNadzir(address _nadzir) external onlyOwner {
-        if (_nadzir == address(0)) revert ZeroAddress();
-        nadzir = _nadzir;
-        emit NadzirUpdated(_nadzir);
+    function setNazir(address _nazir) external onlyOwner {
+        if (_nazir == address(0)) revert ZeroAddress();
+        nazir = _nazir;
+        emit NazirUpdated(_nazir);
     }
 
     function setAdapters(IYieldAdapter[] calldata _adapters, uint256[] calldata _weightsBps) external onlyOwner {
@@ -661,6 +771,15 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         if (address(_router) == address(0)) revert ZeroAddress();
         router = _router;
         emit RouterUpdated(address(_router));
+    }
+
+    /// @notice Set the share of harvest surplus retained to grow the perpetual endowment.
+    /// @dev Capped at `MAX_COMPOUND_BPS`. This is the one owner lever that moves value away from
+    ///      the nazir, so the cap is a constant rather than another owner-settable field.
+    function setCompoundBps(uint256 _compoundBps) external onlyOwner {
+        if (_compoundBps > MAX_COMPOUND_BPS) revert CompoundTooHigh(_compoundBps, MAX_COMPOUND_BPS);
+        compoundBps = _compoundBps;
+        emit CompoundBpsUpdated(_compoundBps);
     }
 
     function setLimits(uint256 _minDeposit, uint256 _minHarvest) external onlyOwner {

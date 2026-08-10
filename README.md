@@ -1,8 +1,16 @@
 # SWR — Staking Wakaf Ritel
 
-Retail cash-waqf on Ethereum. A wakif deposits IDRX and picks a tenor; the vault routes the deposit
-across a basket of liquid-staking venues, strips the NAV surplus to a nadzir wallet, and returns
-100% of the principal after tenor + unbonding.
+Retail cash-waqf on Ethereum. A waqif deposits IDRX under one of two akad; the vault routes the
+deposit across a basket of liquid-staking venues and strips the NAV surplus to a nazir wallet.
+
+| Akad | Corpus | Contract behaviour |
+|---|---|---|
+| **Waqf mu'abbad** — perpetual | never returned | `depositPerpetual()`; `requestUnstake` reverts `PerpetualPosition()` forever |
+| **Waqf mu'aqqat** — fixed tenor | returned 100% after tenor + unbonding | `deposit()`, then `requestUnstake` → `claim` |
+
+The perpetual akad is enforced in Solidity, not in the UI. There is no function — for the waqif,
+the nazir, or the owner — that returns a perpetual corpus. Hiding a button would have repeated
+exactly the flaw this project was written to correct.
 
 Successor to [`WeissCurry/skripsi-staking`](https://github.com/WeissCurry/skripsi-staking). That
 project shipped an ERC-4626 WETH vault where `period` and `poolId` were **decorative NFT metadata**
@@ -28,7 +36,7 @@ What this codebase does is make that risk visible and survivable, not absent:
 | 30% idle IDRX sleeve | A stable leg that genuinely dampens ETH drawdown |
 | `deficit` | Any shortfall at unstake is recorded onchain, never hidden |
 | `solvencyRatioBps()` | Backing vs obligations, surfaced in the UI rather than styled away |
-| `topUp()` | Permissionless — a takaful reserve, or anyone, can make wakif whole |
+| `topUp()` | Permissionless — a takaful reserve, or anyone, can make waqif whole |
 
 This is a property of the asset choice, not a bug to be fixed. It is stated in the UI before a user
 signs. **Unaudited, testnet only, all tokens are play money.**
@@ -66,7 +74,7 @@ So the split is:
 ```
 SWRVault.sol ──┬── WstETHAdapter ──→ Lido      (submit → stETH → wrap → wstETH)
                ├── WeETHAdapter  ──→ ether.fi  (LiquidityPool → eETH → wrap → weETH)
-               └── IkrarAkadNFT             (per-deposit akad certificate, onchain SVG)
+               └── AkadCertificateNFT             (per-deposit akad certificate, onchain SVG)
 ```
 
 The vault knows nothing about Lido or ether.fi — only `IYieldAdapter`. That is what lets a Sepolia
@@ -96,10 +104,10 @@ competing with anyone else who wants the bounty.
 
 | Function | Who calls it | Why | If nobody does |
 |---|---|---|---|
-| `deposit` | wakif | wants to give waqf | system idle, safe |
+| `deposit` | waqif | wants to give waqf | system idle, safe |
 | `harvest` | **anyone** | earns the bounty | yield accrues in-vault, not lost |
-| `requestUnstake` | wakif | starts their clock | funds stay staked, still theirs |
-| `claim` | wakif | gets principal back | remains claimable indefinitely |
+| `requestUnstake` | waqif | starts their clock | funds stay staked, still theirs |
+| `claim` | waqif | gets principal back | remains claimable indefinitely |
 
 ### Yield stripping
 
@@ -114,7 +122,7 @@ earmarked, so counting them would freeze yield distribution the moment anyone st
 
 The payout is sized from NAV **after** the unwind settles. Unwinding crosses two swap legs and is
 not free; sizing from the pre-unwind NAV charges that cost to the buffer, and the vault ends a
-harvest *below* its own floor — quietly funding the nadzir out of the wakif's cushion. Measuring
+harvest *below* its own floor — quietly funding the nazir out of the waqif's cushion. Measuring
 afterwards puts the cost on the yield, where it belongs.
 
 ---
@@ -161,7 +169,7 @@ cd web && npm install && npm run abis && npm run dev
 ```
 
 `smoke.sh` walks the whole lifecycle and asserts the two properties that matter: a harvest never
-dips the vault below its floor, and the wakif gets their principal back.
+dips the vault below its floor, and the waqif gets their principal back.
 
 ### Deploy to Sepolia
 
@@ -229,8 +237,8 @@ on every swap, exact-amount approvals (never `type(uint256).max`), no upgradeabi
 ## CROPS record
 
 **Censorship resistance.** `harvest()` is permissionless; `claim()` has no pause and no owner gate,
-so a wakif's exit never depends on this team. Verified by test: claiming works with a completely
-dead oracle. The owner *can* set nadzir, weights, tenors and risk params — accepted for a thesis
+so a waqif's exit never depends on this team. Verified by test: claiming works with a completely
+dead oracle. The owner *can* set nazir, weights, tenors and risk params — accepted for a thesis
 MVP; move ownership to a Safe + timelock before real funds. Escape path: every entrypoint is
 callable directly from Etherscan or abi.ninja without the frontend. The UI ships a user-configurable
 RPC field so no single provider is load-bearing.
@@ -240,7 +248,7 @@ Fonts are self-hosted via `@fontsource` rather than pulled from Google, so the a
 third-party requests. Frontend builds with `base: "./"` so it works from IPFS or any subpath.
 
 **Privacy.** Every deposit amount, tenor and wallet address is public, and the akad NFT renders the
-wakif's address into a public SVG. The deposit card states this before a user signs, rather than
+waqif's address into a public SVG. The deposit card states this before a user signs, rather than
 after.
 
 **Security.** No proxy, no upgradeability — nothing to trust an admin not to change. The owner
