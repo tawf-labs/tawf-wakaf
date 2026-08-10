@@ -4,7 +4,7 @@ import { HeartHandshake, Landmark } from "lucide-react";
 import type { Log } from "viem";
 import { CONTRACTS } from "../lib/config";
 import { SWRVaultAbi } from "../generated/abis";
-import { formatRp } from "../lib/format";
+import { bpsToPercent, formatRp } from "../lib/format";
 import { useVaultStats } from "../lib/useVault";
 import { AddressChip, Card, Label, Stat } from "./ui";
 
@@ -91,6 +91,24 @@ export function NazirView() {
           </p>
         </div>
       </div>
+
+      {/* The endowment is what makes this income recurring rather than one-off, so it belongs on
+          the beneficiary's page and not only on the protocol-health page. */}
+      {(stats.perpetualPrincipal ?? 0n) > 0n && (
+        <div className="mt-8 grid grid-cols-1 gap-6 border-t border-tawf-green/10 pt-6 sm:grid-cols-2">
+          <Stat
+            label="Perpetual Corpus"
+            value={formatRp(stats.perpetualCorpus, stats.decimals)}
+            hint="endowed permanently — this income does not end"
+          />
+          <Stat
+            label="Corpus Growth Retained"
+            value={formatRp(stats.perpetualCompounded, stats.decimals)}
+            tone="good"
+            hint={`${bpsToPercent(stats.compoundBps)} of each harvest, reinvested to raise future income`}
+          />
+        </div>
+      )}
 
       <div className="mt-8 border-t border-tawf-green/10 pt-6">
         <div className="flex items-center gap-2">

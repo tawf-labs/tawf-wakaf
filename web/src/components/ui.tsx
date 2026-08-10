@@ -160,6 +160,20 @@ export function AddressChip({ address, label }: { address?: string; label?: stri
   );
 }
 
+/// An Arabic term with its plain-English gloss attached. The design guide asks for the fiqh
+/// vocabulary to be kept rather than flattened, with a tooltip so it never becomes a gate — a
+/// reader who does not know the word still gets the sentence.
+export function Term({ children, gloss }: { children: ReactNode; gloss: string }) {
+  return (
+    <abbr
+      title={gloss}
+      className="cursor-help border-b border-dotted border-tawf-gold/60 no-underline"
+    >
+      {children}
+    </abbr>
+  );
+}
+
 /// Masthead for an app page. Keeps every tool page opening the same way, so the header is not
 /// re-invented per route.
 export function PageHeader({

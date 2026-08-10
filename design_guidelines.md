@@ -286,5 +286,5 @@ Added for this repo; not part of the source document.
 - **Honesty over reassurance.** The tone guide says *"Not as promises. As on-chain reality."* The
   vault carries genuine FX risk (rupiah principal backed by ETH-correlated assets). The solvency
   ratio is shown plainly rather than styled away, and the risk is stated before a user signs.
-- **Rupiah formatting** uses `Intl.NumberFormat('id-ID')` — dots for thousands, no decimals —
+- **Rupiah formatting** uses `Intl.NumberFormat('en-US')` — commas for thousands, no decimals —
   applied to IDRX base units after decimal conversion.

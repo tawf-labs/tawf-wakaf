@@ -17,6 +17,7 @@ const APP_NAV = [
 /// Marketing anchors live on `/`, so they are absolute — clicking "Risks" from inside the app
 /// has to navigate home first, not hunt for an anchor that is not on the current page.
 const MARKETING_NAV = [
+  { to: "/#akad", label: "Akad" },
   { to: "/#how-it-works", label: "How It Works" },
   { to: "/#principles", label: "Principles" },
   { to: "/#risks", label: "Risks" },
