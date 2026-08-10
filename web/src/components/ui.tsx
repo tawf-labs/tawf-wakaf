@@ -3,6 +3,7 @@ import { AlertTriangle, Check, Copy, ExternalLink, Loader2 } from "lucide-react"
 import { useState, type ReactNode } from "react";
 import { explorerLink } from "../lib/config";
 import { truncateAddress } from "../lib/format";
+import { getTerm } from "../lib/glossary";
 import { fadeUp } from "../lib/motion";
 
 export function Section({
@@ -31,12 +32,19 @@ export function Card({
   children,
   className = "",
   sand = false,
+  id,
 }: {
   children: ReactNode;
   className?: string;
   sand?: boolean;
+  /// So a card can be an anchor target, which the glossary's cross-references rely on.
+  id?: string;
 }) {
-  return <div className={`${sand ? "card-sand" : "card"} ${className}`}>{children}</div>;
+  return (
+    <div id={id} className={`${sand ? "card-sand" : "card"} ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 /// A single figure with its label. `hint` carries the honest caveat where there is one.
@@ -163,10 +171,24 @@ export function AddressChip({ address, label }: { address?: string; label?: stri
 /// An Arabic term with its plain-English gloss attached. The design guide asks for the fiqh
 /// vocabulary to be kept rather than flattened, with a tooltip so it never becomes a gate. A
 /// reader who does not know the word still gets the sentence.
-export function Term({ children, gloss }: { children: ReactNode; gloss: string }) {
+/// Pass `name` to pull the definition from the glossary, so a term is worded identically
+/// everywhere it appears and the glossary page cannot drift from the tooltips. `gloss` stays
+/// available for one-off phrases that do not warrant a dictionary entry.
+export function Term({
+  children,
+  name,
+  gloss,
+}: {
+  children: ReactNode;
+  name?: string;
+  gloss?: string;
+}) {
+  const entry = name ? getTerm(name) : undefined;
+  const title = gloss ?? (entry ? `${entry.definition}${entry.context ? ` ${entry.context}` : ""}` : "");
+
   return (
     <abbr
-      title={gloss}
+      title={title}
       className="cursor-help border-b border-dotted border-tawf-gold/60 no-underline"
     >
       {children}

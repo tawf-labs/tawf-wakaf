@@ -109,7 +109,7 @@ function AkadTypes() {
               </div>
 
               <p className="label-caps mt-6">
-                <Term gloss="Perpetual waqf, the classical form. The corpus is held in perpetuity and only its usufruct is given away.">
+                <Term name="waqf-muabbad">
                   Waqf mu'abbad
                 </Term>
               </p>
@@ -147,7 +147,7 @@ function AkadTypes() {
               </div>
 
               <p className="label-caps mt-6">
-                <Term gloss="Temporary waqf. Capital is dedicated for a fixed term, after which the corpus returns to the giver.">
+                <Term name="waqf-muaqqat">
                   Waqf mu'aqqat
                 </Term>
               </p>

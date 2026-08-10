@@ -13,6 +13,7 @@ const APP_NAV = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/harvest", label: "Harvest" },
   { to: "/nazir", label: "Nazir" },
+  { to: "/glossary", label: "Glossary" },
 ] as const;
 
 /// Marketing anchors live on `/`, so they are absolute. Clicking "Risks" from inside the app
@@ -22,6 +23,7 @@ const MARKETING_NAV = [
   { to: "/#how-it-works", label: "How It Works" },
   { to: "/#principles", label: "Principles" },
   { to: "/#risks", label: "Risks" },
+  { to: "/glossary", label: "Glossary" },
 ] as const;
 
 function RpcSettings() {

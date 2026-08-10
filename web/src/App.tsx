@@ -6,6 +6,7 @@ import Earn from "./pages/Earn";
 import Dashboard from "./pages/Dashboard";
 import Harvest from "./pages/Harvest";
 import Nazir from "./pages/Nazir";
+import Glossary from "./pages/Glossary";
 import NotFound from "./pages/NotFound";
 
 /// React Router restores neither scroll position nor hash targets on its own. Without this,
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/harvest" element={<Harvest />} />
         <Route path="/nazir" element={<Nazir />} />
+        <Route path="/glossary" element={<Glossary />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
