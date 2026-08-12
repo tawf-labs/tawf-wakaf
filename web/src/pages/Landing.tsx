@@ -372,8 +372,8 @@ function LaunchCta() {
         <Wallet className="mx-auto h-10 w-10 text-tawf-gold" aria-hidden />
         <h2 className="mt-6 font-serif text-4xl">Ready to place your waqf?</h2>
         <p className="mt-4 text-lg text-tawf-muted">
-          The pool runs on testnet. Claim IDRX from the faucet, deposit under either akad, and walk
-          the whole lifecycle in minutes. Nothing here has monetary value.
+          The pool runs on testnet. Claim IDRX from the faucet and deposit under either akad.
+          Nothing here has monetary value.
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <Link to="/earn" className="btn-primary">

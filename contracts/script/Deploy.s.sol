@@ -68,13 +68,16 @@ contract Deploy is Script {
         address nazir = vm.envOr("NAZIR_ADDRESS", deployer);
         uint256 routerEthSeed = vm.envOr("ROUTER_WETH_SEED", uint256(0.05 ether));
 
-        // Short tenors so the whole lifecycle is demoable in minutes. A mainnet script would seed
-        // 30/90/180 days and a 14-day unbonding. Same code, different numbers.
+        // Real waqf mu'aqqat terms, the same ones a mainnet script would seed. These used to be
+        // 10/30/60 minutes so a demo could sit through a full maturity, which made the picker read
+        // as a lockup rather than an endowment. The maturity path is covered by the test suite and
+        // by smoke.sh on anvil, both of which warp time, so a public testnet does not need a tenor
+        // short enough to wait out.
         uint256[] memory tenors = new uint256[](3);
-        tenors[0] = 10 minutes;
-        tenors[1] = 30 minutes;
-        tenors[2] = 1 hours;
-        uint256 unbonding = 5 minutes;
+        tenors[0] = 30 days;
+        tenors[1] = 90 days;
+        tenors[2] = 180 days;
+        uint256 unbonding = 14 days;
 
         console.log("=== SWR deploy ===");
         console.log("chainid  :", block.chainid);

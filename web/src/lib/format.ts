@@ -58,11 +58,16 @@ export function formatCountdown(secondsLeft: number): string {
 }
 
 /// Tenor length in seconds -> the label shown on the tenor picker.
+///
+/// Pluralised, because the picker reads back the akad the waqif is about to sign and "1 Hours" in
+/// that position looks like a placeholder nobody finished.
 export function formatTenor(seconds: bigint): string {
   const s = Number(seconds);
-  if (s >= 86400) return `${Math.floor(s / 86400)} Days`;
-  if (s >= 3600) return `${Math.floor(s / 3600)} Hours`;
-  return `${Math.floor(s / 60)} Minutes`;
+  const unit = (n: number, name: string) => `${n} ${name}${n === 1 ? "" : "s"}`;
+
+  if (s >= 86400) return unit(Math.floor(s / 86400), "Day");
+  if (s >= 3600) return unit(Math.floor(s / 3600), "Hour");
+  return unit(Math.floor(s / 60), "Minute");
 }
 
 export function formatDate(unixSeconds: number): string {

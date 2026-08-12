@@ -62,8 +62,9 @@ vault to it would produce a one-way trapdoor: no yield ever, and principal perma
 So the split is:
 
 - **Sepolia** runs interface-identical mocks (`MockStETH`/`MockWstETH`, `MockEETH`/`MockWeETH`)
-  that mirror the real ABIs exactly, including the share-based rebasing mechanics. The full
-  lifecycle is demoable in minutes.
+  that mirror the real ABIs exactly, including the share-based rebasing mechanics. Deposit,
+  harvest and the tenor lock are all demoable there against the live contracts. The full maturity
+  path needs anvil, which can warp time.
 - **Mainnet fork tests** (`test/ForkLST.t.sol`) run the *same adapter code* against the real
   deployed Lido and ether.fi contracts. That is where the integration is actually proven.
 
@@ -187,8 +188,11 @@ cd ../web && npm run abis && npm run build
 The deploy script writes `web/src/generated/addresses.json`, so the frontend never hardcodes a
 deployment.
 
-Sepolia is seeded with **10 / 30 / 60-minute tenors and 5-minute unbonding** so the lifecycle is
-demoable. A mainnet script would seed 30/90/180 days and 14 days. Same code, different numbers.
+Sepolia is seeded with **30 / 90 / 180-day tenors and 14-day unbonding**, the same ladder a mainnet
+script would use. It was once 10 / 30 / 60 minutes so a demo could sit through a maturity, which
+made the picker read as a lockup rather than an endowment. Maturity is proven instead by the test
+suite and by `smoke.sh` on anvil, both of which warp time. On Sepolia the lock is shown by
+depositing and calling `requestUnstake` immediately, which reverts `TenorNotElapsed`.
 
 ---
 
