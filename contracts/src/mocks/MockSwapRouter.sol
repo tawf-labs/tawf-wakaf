@@ -9,7 +9,7 @@ import {IAggregatorV3} from "../interfaces/IAggregatorV3.sol";
 
 /// @notice TESTNET ONLY. Pre-funded swap desk covering the two routes SWR needs:
 ///
-///   1. IDRX <-> WETH        priced off the ETH/IDRX oracle
+///   1. USDC <-> WETH        priced off the ETH/USDC oracle
 ///   2. stETH/eETH -> WETH   priced 1:1, since a rebasing LST tracks ETH by construction
 ///
 /// Route 2 is what lets one adapter implementation work everywhere. Real Lido cannot be
@@ -25,11 +25,11 @@ import {IAggregatorV3} from "../interfaces/IAggregatorV3.sol";
 contract MockSwapRouter is ISwapRouter {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable idrx;
+    IERC20 public immutable usdc;
     IERC20 public immutable weth;
-    IAggregatorV3 public immutable ethIdrxFeed;
+    IAggregatorV3 public immutable ethUsdFeed;
 
-    uint8 private immutable _idrxDecimals;
+    uint8 private immutable _usdcDecimals;
     uint8 private immutable _feedDecimals;
 
     /// @notice Tokens treated as 1:1 with ETH (WETH, stETH, eETH).
@@ -49,11 +49,11 @@ contract MockSwapRouter is ISwapRouter {
     error InsufficientLiquidity(address token, uint256 need, uint256 have);
     error BadPrice();
 
-    constructor(IERC20 _idrx, IERC20 _weth, IAggregatorV3 _feed) {
-        idrx = _idrx;
+    constructor(IERC20 _usdc, IERC20 _weth, IAggregatorV3 _feed) {
+        usdc = _usdc;
         weth = _weth;
-        ethIdrxFeed = _feed;
-        _idrxDecimals = IERC20Metadata(address(_idrx)).decimals();
+        ethUsdFeed = _feed;
+        _usdcDecimals = IERC20Metadata(address(_usdc)).decimals();
         _feedDecimals = _feed.decimals();
         owner = msg.sender;
         ethPegged[address(_weth)] = true;
@@ -79,13 +79,13 @@ contract MockSwapRouter is ISwapRouter {
         IWETH(address(weth)).deposit{value: msg.value}();
     }
 
-    /// @notice TESTNET: seed IDRX inventory. The mock token has an open faucet anyway.
+    /// @notice TESTNET: seed USDC inventory. The mock token has an open faucet anyway.
     receive() external payable {
         IWETH(address(weth)).deposit{value: msg.value}();
     }
 
     function _price() internal view returns (uint256) {
-        (, int256 answer,,,) = ethIdrxFeed.latestRoundData();
+        (, int256 answer,,,) = ethUsdFeed.latestRoundData();
         if (answer <= 0) revert BadPrice();
         return uint256(answer);
     }
@@ -97,11 +97,11 @@ contract MockSwapRouter is ISwapRouter {
         if (ethPegged[tokenIn] && ethPegged[tokenOut]) {
             // Both track ETH 1:1 and share 18 decimals.
             gross = amountIn;
-        } else if (ethPegged[tokenIn] && tokenOut == address(idrx)) {
-            // wei -> IDRX base units. Multiply before divide throughout.
-            gross = (amountIn * _price() * (10 ** _idrxDecimals)) / (10 ** _feedDecimals) / 1e18;
-        } else if (tokenIn == address(idrx) && ethPegged[tokenOut]) {
-            gross = (amountIn * (10 ** _feedDecimals) * 1e18) / _price() / (10 ** _idrxDecimals);
+        } else if (ethPegged[tokenIn] && tokenOut == address(usdc)) {
+            // wei -> USDC base units. Multiply before divide throughout.
+            gross = (amountIn * _price() * (10 ** _usdcDecimals)) / (10 ** _feedDecimals) / 1e18;
+        } else if (tokenIn == address(usdc) && ethPegged[tokenOut]) {
+            gross = (amountIn * (10 ** _feedDecimals) * 1e18) / _price() / (10 ** _usdcDecimals);
         } else {
             revert UnsupportedPair();
         }

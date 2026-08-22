@@ -4,7 +4,7 @@ import { HeartHandshake, Landmark } from "lucide-react";
 import type { Log } from "viem";
 import { CONTRACTS } from "../lib/config";
 import { SWRVaultAbi } from "../generated/abis";
-import { bpsToPercent, formatRp } from "../lib/format";
+import { bpsToPercent, formatUsd } from "../lib/format";
 import { useVaultStats } from "../lib/useVault";
 import { AddressChip, Card, Label, Stat } from "./ui";
 
@@ -77,7 +77,7 @@ export function NazirView() {
       <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Stat
           label="Total Distributed"
-          value={formatRp(stats.totalYieldStripped, stats.decimals)}
+          value={formatUsd(stats.totalYieldStripped, stats.decimals)}
           tone="good"
           hint="accumulation of all harvests"
         />
@@ -98,12 +98,12 @@ export function NazirView() {
         <div className="mt-8 grid grid-cols-1 gap-6 border-t border-tawf-green/10 pt-6 sm:grid-cols-2">
           <Stat
             label="Perpetual Corpus"
-            value={formatRp(stats.perpetualCorpus, stats.decimals)}
+            value={formatUsd(stats.perpetualCorpus, stats.decimals)}
             hint="endowed permanently, so this income does not end"
           />
           <Stat
             label="Corpus Growth Retained"
-            value={formatRp(stats.perpetualCompounded, stats.decimals)}
+            value={formatUsd(stats.perpetualCompounded, stats.decimals)}
             tone="good"
             hint={`${bpsToPercent(stats.compoundBps)} of each harvest, reinvested to raise future income`}
           />
@@ -138,10 +138,10 @@ export function NazirView() {
                   <tr key={i} className="border-t border-tawf-green/10">
                     <td className="tnum py-3 text-tawf-muted">{r.block.toString()}</td>
                     <td className="tnum py-3 text-tawf-green">
-                      {formatRp(r.toNazir, stats.decimals)}
+                      {formatUsd(r.toNazir, stats.decimals)}
                     </td>
                     <td className="tnum py-3 text-tawf-muted">
-                      {formatRp(r.bounty, stats.decimals)}
+                      {formatUsd(r.bounty, stats.decimals)}
                     </td>
                     <td className="py-3">
                       <AddressChip address={r.caller} />

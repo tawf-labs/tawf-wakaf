@@ -3,11 +3,11 @@ import { ArrowRight, Layers, ShieldCheck } from "lucide-react";
 import { DepositCard } from "../components/DepositCard";
 import { AddressChip, Card, Label, MotionCard, PageHeader, Section, Stat } from "../components/ui";
 import { CONTRACTS } from "../lib/config";
-import { bpsToPercent, formatRp, formatTenor } from "../lib/format";
+import { bpsToPercent, formatUsd, formatTenor } from "../lib/format";
 import { useAdapters, useVaultStats } from "../lib/useVault";
 
 /// The basket, stated as targets rather than asserted in prose. The 30% stable leg is not an
-/// adapter, just IDRX left unstaked in the vault, so it is listed separately.
+/// adapter, just USDC left unstaked in the vault, so it is listed separately.
 function Basket() {
   const stats = useVaultStats();
   const adapters = useAdapters(Number(stats.adapterCount ?? 0n));
@@ -17,7 +17,7 @@ function Basket() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <Label>Allocation</Label>
-          <h3 className="mt-2 font-serif text-2xl">Where your rupiah goes</h3>
+          <h3 className="mt-2 font-serif text-2xl">Where your USDC goes</h3>
         </div>
         <Layers className="h-8 w-8 shrink-0 text-tawf-gold" aria-hidden />
       </div>
@@ -39,7 +39,7 @@ function Basket() {
 
         <div className="flex items-start justify-between gap-4 border-t border-tawf-green/10 pt-4">
           <div>
-            <p className="text-tawf-ink">IDRX stable reserve</p>
+            <p className="text-tawf-ink">USDC stable reserve</p>
             <p className="mt-1 text-sm text-tawf-muted">
               Stands in for the shariah RWA sleeve, and is the first cushion when the market falls.
             </p>
@@ -95,7 +95,7 @@ function PoolTerms() {
         />
         <Stat
           label="Minimum Deposit"
-          value={formatRp(stats.minDeposit, stats.decimals)}
+          value={formatUsd(stats.minDeposit, stats.decimals)}
         />
         <Stat
           label="Principal Buffer"
@@ -110,8 +110,8 @@ function PoolTerms() {
           <AddressChip address={CONTRACTS.vault} />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-tawf-muted">IDRX</span>
-          <AddressChip address={CONTRACTS.idrx} />
+          <span className="text-tawf-muted">USDC</span>
+          <AddressChip address={CONTRACTS.usdc} />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-tawf-muted">Akad certificate</span>
@@ -130,12 +130,12 @@ export default function Earn() {
       <PageHeader
         eyebrow="Waqf Pool"
         title="Place your waqf"
-        lead="Deposit IDRX for a fixed tenor. The principal is recorded as yours and returned in full. Only the yield above it is ever distributed."
+        lead="Deposit USDC for a fixed tenor. The principal is recorded as yours and returned in full. Only the yield above it is ever distributed."
         aside={
           <div className="text-right">
             <Label>Total Principal</Label>
             <p className="tnum mt-2 font-serif text-3xl text-tawf-green">
-              {formatRp(stats.totalPrincipal, stats.decimals, { compact: true })}
+              {formatUsd(stats.totalPrincipal, stats.decimals, { compact: true })}
             </p>
           </div>
         }

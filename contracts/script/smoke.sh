@@ -5,7 +5,7 @@
 # claim. It asserts the two properties that matter: a harvest never dips the vault below its
 # floor, and the waqif gets their principal back.
 #
-# Reads addresses from web/src/generated/addresses.json, so it works against anvil or Sepolia.
+# Reads addresses from web/src/generated/addresses.json, so it works against anvil or Arbitrum Sepolia.
 #
 #   ./script/smoke.sh <rpc-url> <waqif-private-key> <keeper-private-key>
 #
@@ -23,18 +23,18 @@ KEEPER_PK="${3:?missing keeper private key}"
 CFG="$(dirname "$0")/../../web/src/generated/addresses.json"
 j() { python3 -c "import json,sys;print(json.load(open('$CFG'))['$1'])"; }
 
-VAULT=$(j vault); IDRX=$(j idrx); AKAD=$(j akad)
+VAULT=$(j vault); USDC=$(j usdc); AKAD=$(j akad)
 STETH=$(j stETH); EETH=$(j eETH); CHAIN=$(j chainId)
 
 WAQIF=$(cast wallet address --private-key "$WAQIF_PK")
 KEEPER=$(cast wallet address --private-key "$KEEPER_PK")
 NAZIR=$(cast call "$VAULT" "nazir()(address)" --rpc-url "$RPC")
 
-AMT=10000000  # Rp 100,000.00 in 2-decimal base units
+AMT=100000000  # $100.00 in 6-decimal base units
 
 r() { cast call "$VAULT" "$1" --rpc-url "$RPC" | cut -d' ' -f1; }
 ra() { cast call "$VAULT" "$1" "$2" --rpc-url "$RPC" | cut -d' ' -f1; }
-bal() { cast call "$IDRX" "balanceOf(address)(uint256)" "$1" --rpc-url "$RPC" | cut -d' ' -f1; }
+bal() { cast call "$USDC" "balanceOf(address)(uint256)" "$1" --rpc-url "$RPC" | cut -d' ' -f1; }
 wq() { cast call "$VAULT" "balanceOf(address)(uint256)" "$1" --rpc-url "$RPC" | cut -d' ' -f1; }
 # nth field of the Position tuple, 1-indexed, with cast's "[1.01e7]" annotation stripped.
 pos_field() {
@@ -63,10 +63,15 @@ echo "=== SWR smoke test  (chain $CHAIN)"
 echo "vault $VAULT"
 
 echo
-echo "-- 1. deposit Rp 100,000 on the shortest tenor (${TENOR}s / ${TENOR_LABEL}d)"
+echo "-- 1. deposit \$100 on the shortest tenor (${TENOR}s / ${TENOR_LABEL}d)"
 WQ_BEFORE=$(wq "$WAQIF")
-send "$IDRX" "faucet()" --private-key "$WAQIF_PK"
-send "$IDRX" "approve(address,uint256)" "$VAULT" "$AMT" --private-key "$WAQIF_PK"
+if [ "$CHAIN" = "31337" ]; then
+  # anvil's MockUSDC has a faucet; on a live chain the waqif brings real USDC (Circle faucet).
+  send "$USDC" "faucet()" --private-key "$WAQIF_PK"
+else
+  echo "   (live chain: waqif must already hold USDC from faucet.circle.com)"
+fi
+send "$USDC" "approve(address,uint256)" "$VAULT" "$AMT" --private-key "$WAQIF_PK"
 send "$VAULT" "deposit(uint256,uint256)" "$AMT" 0 --private-key "$WAQIF_PK"
 
 # Deltas and the actual position id, not absolutes and a hardcoded 0. The waqif wallet may already
@@ -74,18 +79,18 @@ send "$VAULT" "deposit(uint256,uint256)" "$AMT" 0 --private-key "$WAQIF_PK"
 POS=$(($(cast call "$VAULT" "positionCount(address)(uint256)" "$WAQIF" --rpc-url "$RPC" \
         | cut -d' ' -f1) - 1))
 MINTED=$(($(wq "$WAQIF") - WQ_BEFORE))
-[ "$MINTED" = "$AMT" ] || { echo "FAIL: wqIDRX not minted 1:1 ($MINTED != $AMT)"; exit 1; }
+[ "$MINTED" = "$AMT" ] || { echo "FAIL: wqUSDC not minted 1:1 ($MINTED != $AMT)"; exit 1; }
 echo "   position id              $POS"
-echo "   wqIDRX minted 1:1        OK"
+echo "   wqUSDC minted 1:1        OK"
 echo "   akad certificate         $(cast call "$AKAD" 'ownerOf(uint256)(address)' \
                                     "$(pos_field 7 "$POS")" --rpc-url "$RPC")"
-echo "   NAV / floor              $(r 'totalNavIDRX()(uint256)') / $(r 'harvestFloor()(uint256)')"
+echo "   NAV / floor              $(r 'totalNavUSDC()(uint256)') / $(r 'harvestFloor()(uint256)')"
 
 echo
 echo "-- 2. simulate validator rewards (+30% on both legs)"
 send "$STETH" "accrueBps(uint256)" 3000 --private-key "$WAQIF_PK"
 send "$EETH"  "accrueBps(uint256)" 3000 --private-key "$WAQIF_PK"
-echo "   NAV                      $(r 'totalNavIDRX()(uint256)')"
+echo "   NAV                      $(r 'totalNavUSDC()(uint256)')"
 echo "   solvency (bps)           $(r 'solvencyRatioBps()(uint256)')"
 
 echo
@@ -93,7 +98,7 @@ echo "-- 3. harvest from a NON-owner wallet"
 NAZ_BEFORE=$(bal "$NAZIR")
 send "$VAULT" "harvest()" --private-key "$KEEPER_PK"
 NAZ_AFTER=$(bal "$NAZIR")
-NAV=$(r 'totalNavIDRX()(uint256)'); FLOOR=$(r 'harvestFloor()(uint256)')
+NAV=$(r 'totalNavUSDC()(uint256)'); FLOOR=$(r 'harvestFloor()(uint256)')
 [ "$NAZ_AFTER" -gt "$NAZ_BEFORE" ] || { echo "FAIL: nazir received nothing"; exit 1; }
 [ "$NAV" -ge "$FLOOR" ] || { echo "FAIL: harvest dipped below floor ($NAV < $FLOOR)"; exit 1; }
 echo "   nazir received          $((NAZ_AFTER - NAZ_BEFORE))"
@@ -138,7 +143,7 @@ AFTER=$(bal "$WAQIF")
 PAYOUT=$((AFTER - BEFORE))
 [ "$PAYOUT" = "$AMT" ] || { echo "FAIL: principal not fully returned ($PAYOUT != $AMT)"; exit 1; }
 echo "   payout                   $PAYOUT  (100% of principal)"
-echo "   wqIDRX burned            $((MINTED - ($(wq "$WAQIF") - WQ_BEFORE)))  of $MINTED"
+echo "   wqUSDC burned            $((MINTED - ($(wq "$WAQIF") - WQ_BEFORE)))  of $MINTED"
 echo "   deficit                  $(r 'deficit()(uint256)')"
 
 echo

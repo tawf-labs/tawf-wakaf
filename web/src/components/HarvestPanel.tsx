@@ -1,14 +1,13 @@
 import { useAccount } from "wagmi";
-import { Network, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
+import { Network, Sparkles, TrendingUp } from "lucide-react";
 import { CONTRACTS } from "../lib/config";
-import { MockAggregatorAbi, SWRVaultAbi } from "../generated/abis";
-import { bpsToPercent, formatEth, formatRp } from "../lib/format";
+import { SWRVaultAbi } from "../generated/abis";
+import { bpsToPercent, formatEth, formatUsd } from "../lib/format";
 import { useOnchainAction } from "../lib/useOnchainAction";
 import { useAdapters, useVaultStats } from "../lib/useVault";
 import { AddressChip, Button, Card, ErrorNote, Label, Stat, SuccessNote } from "./ui";
 
 const vault = CONTRACTS.vault as `0x${string}`;
-const feed = CONTRACTS.feed as `0x${string}`;
 
 export function HarvestPanel() {
   const { isConnected } = useAccount();
@@ -16,7 +15,6 @@ export function HarvestPanel() {
   const adapters = useAdapters(Number(stats.adapterCount ?? 0n));
 
   const harvest = useOnchainAction(() => stats.refetch());
-  const poke = useOnchainAction(() => stats.refetch());
 
   const surplus =
     stats.nav !== undefined && stats.harvestFloor !== undefined && stats.nav > stats.harvestFloor
@@ -50,20 +48,20 @@ export function HarvestPanel() {
       </p>
 
       {stats.oracleStale && (
-        <ErrorNote message="Oracle price is stale, so NAV cannot be calculated. Refresh the oracle below to continue." />
+        <ErrorNote message="The ETH/USD price feed is stale, so NAV cannot be calculated right now. The vault will resume pricing once Chainlink's feed updates." />
       )}
 
       {/* NAV breakdown */}
       <div className="mt-8 grid grid-cols-2 gap-6">
-        <Stat label="Portfolio NAV" value={formatRp(stats.nav, stats.decimals)} />
+        <Stat label="Portfolio NAV" value={formatUsd(stats.nav, stats.decimals)} />
         <Stat
           label="Harvest Floor"
-          value={formatRp(stats.harvestFloor, stats.decimals)}
+          value={formatUsd(stats.harvestFloor, stats.decimals)}
           hint={`principal + buffer ${bpsToPercent(stats.bufferBps)}`}
         />
         <Stat
           label="Available Surplus"
-          value={formatRp(surplus, stats.decimals)}
+          value={formatUsd(surplus, stats.decimals)}
           tone={surplus > 0n ? "good" : "default"}
           hint={surplus > 0n ? "ready for distribution" : "has not exceeded buffer"}
         />
@@ -79,12 +77,12 @@ export function HarvestPanel() {
         <div className="mt-8 grid grid-cols-2 gap-6 border-t border-tawf-green/10 pt-6">
           <Stat
             label="Perpetual Corpus"
-            value={formatRp(stats.perpetualCorpus, stats.decimals)}
+            value={formatUsd(stats.perpetualCorpus, stats.decimals)}
             hint="endowed permanently, never withdrawn"
           />
           <Stat
             label="Compounded Growth"
-            value={formatRp(stats.perpetualCompounded, stats.decimals)}
+            value={formatUsd(stats.perpetualCompounded, stats.decimals)}
             tone="good"
             hint={`${bpsToPercent(stats.compoundBps)} of each harvest, retained`}
           />
@@ -93,10 +91,10 @@ export function HarvestPanel() {
 
       {hasDeficit && (
         <ErrorNote
-          message={`Recorded deficit ${formatRp(
+          message={`Recorded deficit ${formatUsd(
             stats.deficit,
             stats.decimals,
-          )}. This appears when staking asset value drops against rupiah. Exchange rate risk that code cannot eliminate. Anyone can cover it via topUp().`}
+          )}. This appears when staking asset value drops against the dollar. Exchange rate risk that code cannot eliminate. Anyone can cover it via topUp().`}
         />
       )}
 
@@ -113,24 +111,9 @@ export function HarvestPanel() {
           <TrendingUp className="h-4 w-4" aria-hidden />
           Harvest &amp; Distribute to Nazir
         </Button>
-
-        <Button
-          variant="secondary"
-          className="w-full"
-          disabled={!isConnected}
-          busy={poke.busy}
-          busyLabel="Refreshing…"
-          onClick={() =>
-            poke.execute({ address: feed, abi: MockAggregatorAbi, functionName: "poke" })
-          }
-        >
-          <RefreshCw className="h-4 w-4" aria-hidden />
-          Refresh Oracle
-        </Button>
       </div>
 
       {harvest.error && <ErrorNote message={harvest.error} onDismiss={harvest.clearError} />}
-      {poke.error && <ErrorNote message={poke.error} onDismiss={poke.clearError} />}
       {harvest.justSucceeded && <SuccessNote>Proceeds successfully distributed to the Nazir.</SuccessNote>}
 
       {/* Basket breakdown */}
@@ -149,7 +132,7 @@ export function HarvestPanel() {
                   <AddressChip address={a[0]} />
                 </div>
                 <div className="text-right">
-                  <p className="tnum text-tawf-ink">{formatRp(a[4], stats.decimals)}</p>
+                  <p className="tnum text-tawf-ink">{formatUsd(a[4], stats.decimals)}</p>
                   <p className="tnum text-xs text-tawf-muted">
                     {Number(a[2]) / 100}% target · {formatEth(a[3])}
                   </p>
@@ -160,7 +143,7 @@ export function HarvestPanel() {
 
           <div className="flex items-center justify-between gap-4 border-t border-tawf-green/10 pt-3 text-sm">
             <div>
-              <p className="text-tawf-ink">IDRX stable reserve</p>
+              <p className="text-tawf-ink">USDC stable reserve</p>
               <p className="text-xs text-tawf-muted">
                 substitutes for shariah RWA sleeve, and the first cushion when the market falls
               </p>

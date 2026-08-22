@@ -51,7 +51,7 @@ export function parseContractError(err: unknown): string {
       if (reverted.reason) {
         // Plain `require` strings, e.g. the non-transferable receipt guard.
         if (reverted.reason.includes("non-transferable")) {
-          return "wqIDRX is non-transferable. It is bound to your waqf position.";
+          return "wqUSDC is non-transferable. It is bound to your waqf position.";
         }
         return reverted.reason;
       }

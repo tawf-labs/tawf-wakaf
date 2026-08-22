@@ -1,12 +1,13 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { sepolia, foundry } from "wagmi/chains";
+import { sepolia, foundry, arbitrumSepolia } from "wagmi/chains";
 import { http } from "wagmi";
 import addresses from "../generated/addresses.json";
 
 export const CONTRACTS = addresses;
 export const CHAIN_ID = addresses.chainId;
 
-export const activeChain = CHAIN_ID === sepolia.id ? sepolia : foundry;
+export const activeChain =
+  CHAIN_ID === sepolia.id ? sepolia : CHAIN_ID === arbitrumSepolia.id ? arbitrumSepolia : foundry;
 
 /// Pointing the app at your own RPC keeps the default provider from seeing every read it makes,
 /// and gives a fallback if that provider blocks or rate-limits. It had a settings panel in the
@@ -32,7 +33,11 @@ export const wagmiConfig = getDefaultConfig({
 });
 
 export const EXPLORER =
-  CHAIN_ID === sepolia.id ? "https://sepolia.etherscan.io" : "";
+  CHAIN_ID === sepolia.id
+    ? "https://sepolia.etherscan.io"
+    : CHAIN_ID === arbitrumSepolia.id
+      ? "https://sepolia.arbiscan.io"
+      : "";
 
 export const explorerLink = (addr: string, kind: "address" | "tx" = "address") =>
   EXPLORER ? `${EXPLORER}/${kind}/${addr}` : "";

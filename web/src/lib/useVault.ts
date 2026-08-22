@@ -1,9 +1,10 @@
+import { erc20Abi } from "viem";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { CONTRACTS } from "./config";
-import { MockIDRXAbi, SWRVaultAbi } from "../generated/abis";
+import { SWRVaultAbi } from "../generated/abis";
 
 const vault = CONTRACTS.vault as `0x${string}`;
-const idrx = CONTRACTS.idrx as `0x${string}`;
+const usdc = CONTRACTS.usdc as `0x${string}`;
 
 export type Position = {
   principal: bigint;
@@ -25,7 +26,7 @@ export function useVaultStats() {
   const { data, refetch, isLoading } = useReadContracts({
     contracts: [
       { address: vault, abi: SWRVaultAbi, functionName: "totalPrincipal" },
-      { address: vault, abi: SWRVaultAbi, functionName: "totalNavIDRX" },
+      { address: vault, abi: SWRVaultAbi, functionName: "totalNavUSDC" },
       { address: vault, abi: SWRVaultAbi, functionName: "harvestFloor" },
       { address: vault, abi: SWRVaultAbi, functionName: "requiredBuffer" },
       { address: vault, abi: SWRVaultAbi, functionName: "solvencyRatioBps" },
@@ -77,7 +78,7 @@ export function useVaultStats() {
     tenors: v<readonly bigint[]>(12),
     unbondingPeriod: v<bigint>(13),
     minDeposit: v<bigint>(14),
-    decimals: v<number>(15) ?? 2,
+    decimals: v<number>(15) ?? 6,
     bufferBps: v<bigint>(16),
     harvestBountyBps: v<bigint>(17),
     perpetualPrincipal: v<bigint>(18),
@@ -98,17 +99,17 @@ export function useWaqif() {
     query: { enabled: !!address, refetchInterval: 4000 },
   });
 
-  const { data: idrxBalance, refetch: refetchBalance } = useReadContract({
-    address: idrx,
-    abi: MockIDRXAbi,
+  const { data: usdcBalance, refetch: refetchBalance } = useReadContract({
+    address: usdc,
+    abi: erc20Abi,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
     query: { enabled: !!address, refetchInterval: 4000 },
   });
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: idrx,
-    abi: MockIDRXAbi,
+    address: usdc,
+    abi: erc20Abi,
     functionName: "allowance",
     args: address ? [address, vault] : undefined,
     query: { enabled: !!address, refetchInterval: 4000 },
@@ -125,7 +126,7 @@ export function useWaqif() {
   return {
     address,
     positions: (positions as Position[] | undefined) ?? [],
-    idrxBalance: idrxBalance as bigint | undefined,
+    usdcBalance: usdcBalance as bigint | undefined,
     allowance: (allowance as bigint | undefined) ?? 0n,
     wqBalance: wqBalance as bigint | undefined,
     refetchAll: () => {

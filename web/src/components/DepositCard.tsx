@@ -1,16 +1,17 @@
 import { useMemo, useState } from "react";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { erc20Abi } from "viem";
 import { Coins, Droplets, Info, Infinity as InfinityIcon, Lock } from "lucide-react";
 import { CONTRACTS, activeChain } from "../lib/config";
-import { MockIDRXAbi, SWRVaultAbi } from "../generated/abis";
-import { bpsToPercent, formatRp, formatTenor, parseRp } from "../lib/format";
+import { SWRVaultAbi } from "../generated/abis";
+import { bpsToPercent, formatUsd, formatTenor, parseUsd } from "../lib/format";
 import { useOnchainAction } from "../lib/useOnchainAction";
 import { useVaultStats, useWaqif } from "../lib/useVault";
 import { Button, Card, ErrorNote, Label, SuccessNote } from "./ui";
 
 const vault = CONTRACTS.vault as `0x${string}`;
-const idrx = CONTRACTS.idrx as `0x${string}`;
+const usdc = CONTRACTS.usdc as `0x${string}`;
 
 export function DepositCard() {
   const { isConnected } = useAccount();
@@ -32,16 +33,15 @@ export function DepositCard() {
 
   // Each action gets its own hook instance. A shared loading flag is how buttons end up showing
   // the wrong label and accepting a second click mid-flight.
-  const faucet = useOnchainAction(refresh);
   const approve = useOnchainAction(refresh);
   const deposit = useOnchainAction(refresh);
 
   const decimals = stats.decimals;
-  const amount = useMemo(() => parseRp(amountInput, decimals), [amountInput, decimals]);
+  const amount = useMemo(() => parseUsd(amountInput, decimals), [amountInput, decimals]);
 
   const wrongNetwork = isConnected && chainId !== activeChain.id;
   const needsApproval = amount > 0n && waqif.allowance < amount;
-  const insufficient = waqif.idrxBalance !== undefined && amount > waqif.idrxBalance;
+  const insufficient = waqif.usdcBalance !== undefined && amount > waqif.usdcBalance;
   const belowMin = stats.minDeposit !== undefined && amount > 0n && amount < stats.minDeposit;
 
   const ethEstimate = stats.nav !== undefined && amount > 0n ? amount : 0n;
@@ -51,7 +51,7 @@ export function DepositCard() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <Label>Waqf Deposit</Label>
-          <h3 className="mt-2 font-serif text-2xl">Deposit IDRX, principal stays intact</h3>
+          <h3 className="mt-2 font-serif text-2xl">Deposit USDC, principal stays intact</h3>
         </div>
         <Coins className="h-8 w-8 shrink-0 text-tawf-gold" aria-hidden />
       </div>
@@ -110,7 +110,7 @@ export function DepositCard() {
           Waqf Amount
         </label>
         <div className="mt-2 flex items-center gap-2 rounded-2xl border border-tawf-green/15 bg-tawf-sand/40 px-4 py-3">
-          <span className="font-serif text-xl text-tawf-green">Rp</span>
+          <span className="font-serif text-xl text-tawf-green">$</span>
           <input
             id="amount"
             inputMode="numeric"
@@ -122,10 +122,10 @@ export function DepositCard() {
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-tawf-muted">
           <span>
-            Balance: <span className="tnum">{formatRp(waqif.idrxBalance, decimals)}</span>
+            Balance: <span className="tnum">{formatUsd(waqif.usdcBalance, decimals)}</span>
           </span>
           {ethEstimate > 0n && (
-            <span className="tnum">≈ {formatRp(amount, decimals)} will be locked</span>
+            <span className="tnum">≈ {formatUsd(amount, decimals)} will be locked</span>
           )}
         </div>
       </div>
@@ -205,8 +205,8 @@ export function DepositCard() {
               disabled={amount === 0n || insufficient || belowMin}
               onClick={() =>
                 approve.execute({
-                  address: idrx,
-                  abi: MockIDRXAbi,
+                  address: usdc,
+                  abi: erc20Abi,
                   functionName: "approve",
                   // Exactly what is needed, never an unlimited approval.
                   args: [vault, amount],
@@ -214,10 +214,10 @@ export function DepositCard() {
               }
               className="w-full"
             >
-              Approve {formatRp(amount, decimals)}
+              Approve {formatUsd(amount, decimals)}
             </Button>
             <p className="text-center text-sm text-tawf-muted">
-              Step 1 of 2. Granting the vault permission to move exactly this amount of IDRX.
+              Step 1 of 2. Granting the vault permission to move exactly this amount of USDC.
             </p>
           </>
         ) : (
@@ -244,33 +244,31 @@ export function DepositCard() {
             }
             className="w-full"
           >
-            {perpetual ? "Endow" : "Waqf"} {formatRp(amount, decimals)}
+            {perpetual ? "Endow" : "Waqf"} {formatUsd(amount, decimals)}
           </Button>
         )}
 
         {isConnected && !wrongNetwork && (
-          <Button
-            variant="secondary"
-            busy={faucet.busy}
-            busyLabel="Fetching…"
-            onClick={() =>
-              faucet.execute({ address: idrx, abi: MockIDRXAbi, functionName: "faucet" })
-            }
-            className="w-full"
+          <a
+            href="https://faucet.circle.com"
+            target="_blank"
+            rel="noreferrer"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-tawf-green/20 px-4 py-3 text-sm font-medium text-tawf-ink transition-colors hover:border-tawf-green/50"
           >
             <Droplets className="h-4 w-4" aria-hidden />
-            Get Testnet IDRX
-          </Button>
+            Get testnet USDC (Circle faucet)
+          </a>
         )}
       </div>
 
-      {insufficient && <ErrorNote message="IDRX balance is insufficient. Use the faucet above." />}
+      {insufficient && (
+        <ErrorNote message="USDC balance is insufficient. Get testnet USDC from Circle's faucet above." />
+      )}
       {belowMin && (
         <ErrorNote
-          message={`Minimum deposit ${formatRp(stats.minDeposit, decimals)}.`}
+          message={`Minimum deposit ${formatUsd(stats.minDeposit, decimals)}.`}
         />
       )}
-      {faucet.error && <ErrorNote message={faucet.error} onDismiss={faucet.clearError} />}
       {approve.error && <ErrorNote message={approve.error} onDismiss={approve.clearError} />}
       {deposit.error && <ErrorNote message={deposit.error} onDismiss={deposit.clearError} />}
 
@@ -282,7 +280,6 @@ export function DepositCard() {
         </SuccessNote>
       )}
       {approve.justSucceeded && <SuccessNote>Approval successful. Continue to waqf deposit.</SuccessNote>}
-      {faucet.justSucceeded && <SuccessNote>Testnet IDRX received.</SuccessNote>}
 
       {perpetual && (
         <p className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">

@@ -4,20 +4,20 @@ pragma solidity 0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {SWRBase} from "./SWRBase.t.sol";
 import {SWRVault} from "../src/SWRVault.sol";
-import {MockIDRX} from "../src/mocks/MockIDRX.sol";
+import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 import {MockStETH} from "../src/mocks/MockStETH.sol";
 import {MockEETH} from "../src/mocks/MockEETH.sol";
 
 /// @notice Drives the vault through random but valid-shaped action sequences.
 ///
-/// The ETH/IDRX price is deliberately held FIXED and the swap spread set to zero. That isolates
+/// The ETH/USDC price is deliberately held FIXED and the swap spread set to zero. That isolates
 /// the vault's own accounting from market risk, which lets the suite assert the strong property
 /// that actually matters, full solvency at all times, rather than a weakened version that a
 /// price crash would trivially violate. FX risk is covered separately in the unit tests, where
 /// the expected outcome is a recorded deficit rather than silent loss.
 contract SWRHandler is Test {
     SWRVault public vault;
-    MockIDRX public idrx;
+    MockUSDC public usdc;
     MockStETH public stETH;
     MockEETH public eETH;
 
@@ -36,9 +36,9 @@ contract SWRHandler is Test {
     ///      count lets the invariants bound that dust instead of pretending it is zero.
     uint256 public ghostValueOps;
 
-    constructor(SWRVault _vault, MockIDRX _idrx, MockStETH _stETH, MockEETH _eETH, address[3] memory _actors, address _keeper) {
+    constructor(SWRVault _vault, MockUSDC _usdc, MockStETH _stETH, MockEETH _eETH, address[3] memory _actors, address _keeper) {
         vault = _vault;
-        idrx = _idrx;
+        usdc = _usdc;
         stETH = _stETH;
         eETH = _eETH;
         actors = _actors;
@@ -52,13 +52,13 @@ contract SWRHandler is Test {
 
     function deposit(uint256 actorSeed, uint256 amount, uint256 tenorIndex) public {
         address who = _actor(actorSeed);
-        amount = bound(amount, 100, 500_000_00); // Rp 1 .. Rp 500,000 in 2-decimal base units
+        amount = bound(amount, 1_000_000, 500_000_000_000); // $1 .. $500,000 in 6-decimal base units
         tenorIndex = bound(tenorIndex, 0, 2);
 
-        idrx.mint(who, amount);
+        usdc.mint(who, amount);
 
         vm.startPrank(who);
-        idrx.approve(address(vault), amount);
+        usdc.approve(address(vault), amount);
         try vault.deposit(amount, tenorIndex) {
             ghostDeposited += amount;
             ghostValueOps++;
@@ -133,22 +133,22 @@ contract SWRVaultInvariantTest is SWRBase {
         vault.setRiskParams(1_000, 50, 100, 3650 days);
 
         address[3] memory actors = [alice, bob, makeAddr("charlie")];
-        handler = new SWRHandler(vault, idrx, stETH, eETH, actors, keeper);
+        handler = new SWRHandler(vault, usdc, stETH, eETH, actors, keeper);
 
         targetContract(address(handler));
     }
 
-    /// @notice wqIDRX is minted 1:1 on deposit and burned 1:1 on claim, so its supply must equal
+    /// @notice wqUSDC is minted 1:1 on deposit and burned 1:1 on claim, so its supply must equal
     ///         outstanding principal exactly, always, after any sequence.
     function invariant_ReceiptSupplyEqualsPrincipal() public view {
         assertEq(vault.totalSupply(), vault.totalPrincipal(), "receipt supply must track principal");
     }
 
-    /// @notice Every rupiah promised to an unbonding position is actually sitting in the vault.
+    /// @notice Every dollar promised to an unbonding position is actually sitting in the vault.
     ///         If this breaks, someone's claim would fail at payout time.
     function invariant_ReservedClaimsAreFullyBacked() public view {
         assertGe(
-            idrx.balanceOf(address(vault)), vault.reservedForClaims(), "reserved claims must be held, not promised"
+            usdc.balanceOf(address(vault)), vault.reservedForClaims(), "reserved claims must be held, not promised"
         );
     }
 
@@ -156,7 +156,7 @@ contract SWRVaultInvariantTest is SWRBase {
         assertLe(vault.unbondingPrincipal(), vault.totalPrincipal(), "unbonding is a subset of principal");
     }
 
-    /// @dev Solidity truncates on every division, so a rupiah figure that has been converted to
+    /// @dev Solidity truncates on every division, so a dollar figure that has been converted to
     ///      wei and back sheds sub-unit remainders. Each value-moving operation crosses a bounded
     ///      number of those conversions: two per adapter inside a liquidation, plus the two swap
     ///      legs, so total drift is bounded by ops x (adapters + 3) base units.
@@ -172,7 +172,7 @@ contract SWRVaultInvariantTest is SWRBase {
     ///         covers every outstanding obligation, to within truncation dust.
     function invariant_FullySolventUnderStablePrices() public view {
         assertGe(
-            vault.totalNavIDRX() + vault.reservedForClaims() + _dustAllowance(),
+            vault.totalNavUSDC() + vault.reservedForClaims() + _dustAllowance(),
             vault.totalPrincipal(),
             "backing must cover obligations"
         );
@@ -188,8 +188,8 @@ contract SWRVaultInvariantTest is SWRBase {
     ///         comes out of principal. This is the yield-stripping promise, checked structurally.
     function invariant_DistributedYieldNeverCameFromPrincipal() public view {
         // Everything the vault still holds, plus everything it has already paid out to waqif,
-        // must cover every rupiah ever deposited. The distributed yield sits strictly on top.
-        uint256 backing = vault.totalNavIDRX() + vault.reservedForClaims() + handler.ghostClaimed();
+        // must cover every dollar ever deposited. The distributed yield sits strictly on top.
+        uint256 backing = vault.totalNavUSDC() + vault.reservedForClaims() + handler.ghostClaimed();
         assertGe(
             backing + _dustAllowance(), handler.ghostDeposited(), "payouts never dipped into principal"
         );

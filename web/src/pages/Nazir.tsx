@@ -1,6 +1,6 @@
 import { NazirView } from "../components/NazirView";
 import { Label, MotionCard, PageHeader, Section } from "../components/ui";
-import { formatRp } from "../lib/format";
+import { formatUsd } from "../lib/format";
 import { useVaultStats } from "../lib/useVault";
 
 /// Read-only beneficiary view, reconstructed from `YieldStripped` events rather than served by a
@@ -18,7 +18,7 @@ export default function Nazir() {
           <div className="text-right">
             <Label>Total Distributed</Label>
             <p className="tnum mt-2 font-serif text-3xl text-tawf-green">
-              {formatRp(stats.totalYieldStripped, stats.decimals, { compact: true })}
+              {formatUsd(stats.totalYieldStripped, stats.decimals, { compact: true })}
             </p>
           </div>
         }

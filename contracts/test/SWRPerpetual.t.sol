@@ -16,7 +16,7 @@ contract SWRPerpetualTest is SWRBase {
     // =====================================================================
 
     function test_PerpetualDepositRecordsIrrevocablePosition() public {
-        uint256 amount = idr(1_000_000);
+        uint256 amount = usd(1_000_000);
         uint256 id = _depositPerpetual(alice, amount);
 
         SWRVault.Position memory p = vault.getPosition(alice, id);
@@ -34,7 +34,7 @@ contract SWRPerpetualTest is SWRBase {
     }
 
     function test_RevertWhen_UnstakingPerpetualPosition() public {
-        uint256 id = _depositPerpetual(alice, idr(1_000_000));
+        uint256 id = _depositPerpetual(alice, usd(1_000_000));
 
         // Not a timing problem: wait out every tenor the vault offers and it still refuses.
         _warp(TENOR_LONG * 10);
@@ -45,7 +45,7 @@ contract SWRPerpetualTest is SWRBase {
     }
 
     function test_RevertWhen_UnstakingPerpetualPositionImmediately() public {
-        uint256 id = _depositPerpetual(alice, idr(1_000_000));
+        uint256 id = _depositPerpetual(alice, usd(1_000_000));
 
         vm.prank(alice);
         vm.expectRevert(SWRVault.PerpetualPosition.selector);
@@ -53,7 +53,7 @@ contract SWRPerpetualTest is SWRBase {
     }
 
     function test_RevertWhen_ClaimingPerpetualPosition() public {
-        uint256 id = _depositPerpetual(alice, idr(1_000_000));
+        uint256 id = _depositPerpetual(alice, usd(1_000_000));
         _warp(TENOR_LONG * 10);
 
         // `claim` is closed too, and for the reason it is normally closed: the position never
@@ -64,7 +64,7 @@ contract SWRPerpetualTest is SWRBase {
     }
 
     function test_NoAdminPathOutOfAnEndowment() public {
-        _depositPerpetual(alice, idr(1_000_000));
+        _depositPerpetual(alice, usd(1_000_000));
         _warp(TENOR_LONG * 10);
 
         // Positions are keyed by caller, so the owner reaching for alice's endowment finds
@@ -73,8 +73,8 @@ contract SWRPerpetualTest is SWRBase {
         vm.expectRevert(abi.encodeWithSelector(SWRVault.NoSuchPosition.selector, 0));
         vault.requestUnstake(0);
 
-        idrx.mint(owner, idr(1_000));
-        uint256 ownerId = _depositPerpetual(owner, idr(1_000));
+        usdc.mint(owner, usd(1_000));
+        uint256 ownerId = _depositPerpetual(owner, usd(1_000));
 
         vm.prank(owner);
         vm.expectRevert(SWRVault.PerpetualPosition.selector);
@@ -82,8 +82,8 @@ contract SWRPerpetualTest is SWRBase {
     }
 
     function test_PerpetualAndTemporaryCoexist() public {
-        uint256 perpetualId = _depositPerpetual(alice, idr(1_000_000));
-        uint256 temporaryId = _deposit(alice, idr(2_000_000), 0);
+        uint256 perpetualId = _depositPerpetual(alice, usd(1_000_000));
+        uint256 temporaryId = _deposit(alice, usd(2_000_000), 0);
 
         _warp(TENOR_SHORT + 1);
 
@@ -99,12 +99,12 @@ contract SWRPerpetualTest is SWRBase {
         SWRVault.Position memory p = vault.getPosition(alice, perpetualId);
         assertTrue(p.perpetual);
         assertEq(uint256(p.status), uint256(SWRVault.Status.Active));
-        assertEq(vault.perpetualPrincipal(), idr(1_000_000));
-        assertEq(vault.totalPrincipal(), idr(1_000_000), "only the temporary principal left");
+        assertEq(vault.perpetualPrincipal(), usd(1_000_000));
+        assertEq(vault.totalPrincipal(), usd(1_000_000), "only the temporary principal left");
     }
 
     function test_AkadCertificateSaysPerpetual() public {
-        uint256 id = _depositPerpetual(alice, idr(1_000_000));
+        uint256 id = _depositPerpetual(alice, usd(1_000_000));
         SWRVault.Position memory p = vault.getPosition(alice, id);
 
         string memory svg = akad.generateSVG(p.akadTokenId);
@@ -119,12 +119,12 @@ contract SWRPerpetualTest is SWRBase {
     // =====================================================================
 
     function test_HarvestRetainsShareIntoCorpus() public {
-        _depositPerpetual(alice, idr(10_000_000));
+        _depositPerpetual(alice, usd(10_000_000));
         _accrueYield(2_000); // +20% on both legs
         _refreshOracle();
 
         uint256 corpusBefore = vault.perpetualCorpus();
-        uint256 nazirBefore = idrx.balanceOf(nazir);
+        uint256 nazirBefore = usdc.balanceOf(nazir);
 
         vm.prank(keeper);
         (uint256 toNazir,) = vault.harvest();
@@ -132,7 +132,7 @@ contract SWRPerpetualTest is SWRBase {
         assertGt(vault.perpetualCompounded(), 0, "some surplus must be retained");
         assertGt(vault.perpetualCorpus(), corpusBefore, "the endowment must grow");
         assertGt(toNazir, 0, "the nazir must still be paid");
-        assertEq(idrx.balanceOf(nazir) - nazirBefore, toNazir);
+        assertEq(usdc.balanceOf(nazir) - nazirBefore, toNazir);
 
         // The retained share is the configured fraction of the whole surplus, and the nazir keeps
         // the rest, so the endowment can never quietly take everything.
@@ -140,8 +140,8 @@ contract SWRPerpetualTest is SWRBase {
     }
 
     function test_HarvestNeverLeavesVaultBelowFloorWhenCompounding() public {
-        _depositPerpetual(alice, idr(10_000_000));
-        _deposit(bob, idr(5_000_000), 1);
+        _depositPerpetual(alice, usd(10_000_000));
+        _deposit(bob, usd(5_000_000), 1);
 
         // A spread makes the unwind genuinely lossy, which is where the naive version of this
         // arithmetic charged the compounding cost to the buffer backing principal.
@@ -161,7 +161,7 @@ contract SWRPerpetualTest is SWRBase {
             vault.harvest();
 
             assertGe(
-                vault.totalNavIDRX(),
+                vault.totalNavUSDC(),
                 vault.harvestFloor(),
                 "NAV must never end a compounding harvest below the floor it just raised"
             );
@@ -171,7 +171,7 @@ contract SWRPerpetualTest is SWRBase {
     }
 
     function test_CompoundedCorpusCannotBeStrippedLater() public {
-        _depositPerpetual(alice, idr(10_000_000));
+        _depositPerpetual(alice, usd(10_000_000));
         _accrueYield(2_000);
         _refreshOracle();
 
@@ -191,7 +191,7 @@ contract SWRPerpetualTest is SWRBase {
     }
 
     function test_CompoundingRaisesTheFloorByExactlyWhatItRetained() public {
-        _depositPerpetual(alice, idr(10_000_000));
+        _depositPerpetual(alice, usd(10_000_000));
         _accrueYield(2_000);
         _refreshOracle();
 
@@ -207,23 +207,23 @@ contract SWRPerpetualTest is SWRBase {
 
     function test_NoCompoundingWithoutPerpetualPositions() public {
         // Temporary-only vault: compoundBps is set, but there is no endowment to credit.
-        _deposit(alice, idr(10_000_000), 0);
+        _deposit(alice, usd(10_000_000), 0);
         _accrueYield(2_000);
         _refreshOracle();
 
-        uint256 nazirBefore = idrx.balanceOf(nazir);
+        uint256 nazirBefore = usdc.balanceOf(nazir);
 
         vm.prank(keeper);
         (uint256 toNazir, uint256 bounty) = vault.harvest();
 
         assertEq(vault.perpetualCompounded(), 0, "nothing to compound into");
         assertGt(toNazir, 0);
-        assertEq(idrx.balanceOf(nazir) - nazirBefore, toNazir);
-        assertEq(idrx.balanceOf(keeper), bounty);
+        assertEq(usdc.balanceOf(nazir) - nazirBefore, toNazir);
+        assertEq(usdc.balanceOf(keeper), bounty);
     }
 
     function test_SolvencyCountsCompoundedCorpusAsOwed() public {
-        _depositPerpetual(alice, idr(10_000_000));
+        _depositPerpetual(alice, usd(10_000_000));
         _accrueYield(2_000);
         _refreshOracle();
 
@@ -231,7 +231,7 @@ contract SWRPerpetualTest is SWRBase {
         vault.harvest();
 
         uint256 owed = vault.totalPrincipal() + vault.perpetualCompounded();
-        uint256 expected = ((vault.totalNavIDRX() + vault.reservedForClaims()) * 10_000) / owed;
+        uint256 expected = ((vault.totalNavUSDC() + vault.reservedForClaims()) * 10_000) / owed;
 
         assertEq(vault.solvencyRatioBps(), expected, "compounded growth is an obligation, not free equity");
         assertGe(vault.solvencyRatioBps(), 10_000, "and it must still be fully backed");
@@ -265,7 +265,7 @@ contract SWRPerpetualTest is SWRBase {
         vm.prank(owner);
         vault.setCompoundBps(0);
 
-        _depositPerpetual(alice, idr(10_000_000));
+        _depositPerpetual(alice, usd(10_000_000));
         _accrueYield(2_000);
         _refreshOracle();
 
@@ -273,7 +273,7 @@ contract SWRPerpetualTest is SWRBase {
         vault.harvest();
 
         assertEq(vault.perpetualCompounded(), 0, "nothing retained when the share is zero");
-        assertGt(idrx.balanceOf(nazir), 0);
+        assertGt(usdc.balanceOf(nazir), 0);
     }
 
     // --- helpers ----------------------------------------------------------

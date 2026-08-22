@@ -3,7 +3,7 @@ import { useAccount } from "wagmi";
 import { Clock, FileText, Hourglass, Infinity as InfinityIcon, Wallet } from "lucide-react";
 import { CONTRACTS } from "../lib/config";
 import { SWRVaultAbi } from "../generated/abis";
-import { formatCountdown, formatDate, formatRp, formatTenor } from "../lib/format";
+import { formatCountdown, formatDate, formatUsd, formatTenor } from "../lib/format";
 import { useOnchainAction } from "../lib/useOnchainAction";
 import { useVaultStats, useWaqif, type Position } from "../lib/useVault";
 import { AkadCertificate } from "./AkadCertificate";
@@ -68,7 +68,7 @@ function PositionRow({
         <div>
           <div className="flex items-center gap-3">
             <span className="tnum font-serif text-2xl text-tawf-green">
-              {formatRp(position.principal, decimals)}
+              {formatUsd(position.principal, decimals)}
             </span>
             <span className={`rounded-full px-3 py-1 text-xs ${statusChip.cls}`}>
               {statusChip.text}
@@ -126,7 +126,7 @@ function PositionRow({
         )}
         {isUnbonding && (
           <span className="tnum text-tawf-muted">
-            Reserved: {formatRp(position.reserved, decimals)}
+            Reserved: {formatUsd(position.reserved, decimals)}
           </span>
         )}
       </div>
@@ -178,10 +178,10 @@ function PositionRow({
 
       {position.reserved < position.principal && isUnbonding && (
         <ErrorNote
-          message={`Funds successfully reserved are less than the principal (${formatRp(
+          message={`Funds successfully reserved are less than the principal (${formatUsd(
             position.principal - position.reserved,
             decimals,
-          )} short). This happens when staking asset value drops against rupiah. The shortfall is recorded as a deficit and can be covered via topUp().`}
+          )} short). This happens when staking asset value drops against the dollar. The shortfall is recorded as a deficit and can be covered via topUp().`}
         />
       )}
 
@@ -224,8 +224,8 @@ export function PositionList() {
         <div>
           <Label>Your Waqf Positions</Label>
           <h3 className="mt-2 font-serif text-3xl">
-            {formatRp(waqif.wqBalance, stats.decimals)}{" "}
-            <span className="text-lg text-tawf-muted">wqIDRX</span>
+            {formatUsd(waqif.wqBalance, stats.decimals)}{" "}
+            <span className="text-lg text-tawf-muted">wqUSDC</span>
           </h3>
         </div>
         <p className="text-sm text-tawf-muted">
@@ -236,7 +236,7 @@ export function PositionList() {
       {waqif.positions.length === 0 ? (
         <Card sand className="mt-6">
           <p className="text-tawf-muted">
-            No waqf positions yet. Start by depositing IDRX next door.
+            No waqf positions yet. Start by depositing USDC next door.
           </p>
         </Card>
       ) : (

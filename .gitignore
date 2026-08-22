@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 *.key
+.pw
+contracts/.pw
 keystore/
 **/keystore/
 

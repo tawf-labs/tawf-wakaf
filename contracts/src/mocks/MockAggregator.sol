@@ -3,15 +3,14 @@ pragma solidity 0.8.28;
 
 import {IAggregatorV3} from "../interfaces/IAggregatorV3.sol";
 
-/// @notice TESTNET ONLY. Chainlink-shaped ETH/IDRX feed.
+/// @notice TESTNET ONLY. Chainlink-shaped ETH/USD feed.
 ///
-/// Sepolia has a live ETH/USD feed (0x694AA1769357215DE4FAC081bf1f309aDC325306, verified)
-/// but no IDR feed anywhere, so the rupiah leg has to be supplied. On Sepolia this contract
-/// is seeded from the real ETH/USD price times a USD/IDR rate.
+/// On Arbitrum Sepolia the deploy script points the vault at the real Chainlink ETH/USD feed
+/// (0xd30e2101a97dcbAeBCBC04F14C3f624E67A35165, verified). This mock exists for anvil, local
+/// dev, and the test suite, where the price is owner-set so scenarios can move it at will.
 ///
-/// That USD/IDR leg is an explicit trust assumption and is logged as such in the CROPS
-/// record: whoever can set this price can move the vault's NAV, and therefore how much
-/// yield is strippable. A production deployment needs a real feed or a multi-source median.
+/// Whoever can set this price can move the vault's NAV, and therefore how much yield is
+/// strippable. A production deployment needs a real feed or a multi-source median, never this.
 ///
 /// NEVER deploy to mainnet.
 contract MockAggregator is IAggregatorV3 {

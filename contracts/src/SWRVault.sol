@@ -14,14 +14,14 @@ import {IAggregatorV3} from "./interfaces/IAggregatorV3.sol";
 import {AkadCertificateNFT} from "./AkadCertificateNFT.sol";
 
 /// @title SWR Vault, Retail Cash Waqf
-/// @notice Retail cash-waqf vault. A waqif deposits IDRX and picks a tenor. The vault routes the
+/// @notice Retail cash-waqf vault. A waqif deposits USDC and picks a tenor. The vault routes the
 ///         deposit across a basket of liquid-staking venues, strips NAV surplus to the nazir
 ///         wallet, and returns 100% of the principal after tenor + unbonding.
 ///
 /// ## The honest risk, stated up front
 ///
-/// Principal is denominated in IDRX (rupiah) but is backed by ETH-correlated assets. If ETH falls
-/// against the rupiah, NAV falls below `totalPrincipal` and no amount of Solidity can conjure the
+/// Principal is denominated in USDC (USD) but is backed by ETH-correlated assets. If ETH falls
+/// against the dollar, NAV falls below `totalPrincipal` and no amount of Solidity can conjure the
 /// difference. `bufferBps`, `deficit`, `solvencyRatioBps()` and `topUp()` exist to make that risk
 /// visible and survivable, not to eliminate it. It is a property of the asset choice.
 ///
@@ -32,7 +32,7 @@ import {AkadCertificateNFT} from "./AkadCertificateNFT.sol";
 /// else who wants the bounty. No admin key sits on the path between yield and the nazir, and
 /// `claim()` has no pause and no owner gate, so a waqif's exit never depends on this team existing.
 ///
-/// ## wqIDRX
+/// ## wqUSDC
 ///
 /// This contract IS the receipt token, minted 1:1 with principal and non-transferable. Each deposit
 /// carries its own tenor and unbonding clock, so a freely transferable receipt would let someone
@@ -53,10 +53,10 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     /// @dev Packed into 3 slots. uint128 caps principal at ~3.4e38 base units, far beyond any
-    ///      plausible rupiah figure even at 18 decimals.
+    ///      plausible USD figure even at 18 decimals.
     struct Position {
-        uint128 principal; // IDRX base units owed to the waqif
-        uint128 reserved; // IDRX actually set aside at requestUnstake
+        uint128 principal; // USDC base units owed to the waqif
+        uint128 reserved; // USDC actually set aside at requestUnstake
         uint64 depositedAt;
         uint64 tenor; // seconds, snapshotted so later config changes cannot extend a live lock
         uint64 unbondingStart; // 0 until requestUnstake
@@ -72,20 +72,20 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
     // --- immutable wiring -------------------------------------------------
 
-    IERC20 public immutable idrx;
-    uint8 public immutable idrxDecimals;
+    IERC20 public immutable usdc;
+    uint8 public immutable usdcDecimals;
     IWETH public immutable weth;
     AkadCertificateNFT public immutable akad;
 
     // --- configurable wiring ----------------------------------------------
 
     ISwapRouter public router;
-    IAggregatorV3 public ethIdrxFeed;
+    IAggregatorV3 public ethUsdFeed;
     address public nazir;
 
     IYieldAdapter[] public adapters;
     /// @notice Basis points of each deposit routed to `adapters[i]`. The unallocated remainder
-    ///         stays as idle IDRX, the stable leg standing in for the PRD's syariah-RWA sleeve,
+    ///         stays as idle USDC, the stable leg standing in for the PRD's syariah-RWA sleeve,
     ///         which doubles as the first line of defence in a drawdown.
     uint256[] public weightsBps;
 
@@ -107,16 +107,16 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
     mapping(address => Position[]) private _positions;
 
-    /// @notice Sum of every un-claimed position's principal, in IDRX base units.
+    /// @notice Sum of every un-claimed position's principal, in USDC base units.
     uint256 public totalPrincipal;
     /// @notice Principal belonging to positions already in unbonding. Its backing has been pulled
     ///         out of the basket into `reservedForClaims`, so it must be excluded from the harvest
     ///         floor. Otherwise the floor counts an obligation whose assets are no longer in NAV,
     ///         and yield stops being distributable the moment anyone starts unbonding.
     uint256 public unbondingPrincipal;
-    /// @notice IDRX earmarked for positions already in unbonding. Excluded from working NAV.
+    /// @notice USDC earmarked for positions already in unbonding. Excluded from working NAV.
     uint256 public reservedForClaims;
-    /// @notice Lifetime IDRX delivered to the nazir.
+    /// @notice Lifetime USDC delivered to the nazir.
     uint256 public totalYieldStripped;
     /// @notice Cumulative principal that could not be reserved in full: the FX risk, made visible.
     uint256 public deficit;
@@ -141,7 +141,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     ///      decoding a tenor of zero and guessing what it meant.
     event PerpetualDeposited(address indexed waqif, uint256 indexed positionId, uint256 amount, uint256 akadTokenId);
     event Compounded(uint256 retained, uint256 perpetualCorpus);
-    event Routed(uint256 indexed adapterIndex, uint256 idrxIn, uint256 ethStaked);
+    event Routed(uint256 indexed adapterIndex, uint256 usdcIn, uint256 ethStaked);
     event UnstakeRequested(
         address indexed waqif, uint256 indexed positionId, uint256 reserved, uint256 claimableAt
     );
@@ -184,52 +184,52 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     error EthTransferFailed();
 
     constructor(
-        IERC20 _idrx,
+        IERC20 _usdc,
         IWETH _weth,
         ISwapRouter _router,
-        IAggregatorV3 _ethIdrxFeed,
+        IAggregatorV3 _ethUsdFeed,
         AkadCertificateNFT _akad,
         address _nazir,
         uint256[] memory _tenorOptions,
         uint256 _unbondingPeriod,
         address _owner
-    ) ERC20("Waqf Staked IDRX", "wqIDRX") Ownable(_owner) {
+    ) ERC20("Waqf Staked USDC", "wqUSDC") Ownable(_owner) {
         if (
-            address(_idrx) == address(0) || address(_weth) == address(0) || address(_router) == address(0)
-                || address(_ethIdrxFeed) == address(0) || address(_akad) == address(0) || _nazir == address(0)
+            address(_usdc) == address(0) || address(_weth) == address(0) || address(_router) == address(0)
+                || address(_ethUsdFeed) == address(0) || address(_akad) == address(0) || _nazir == address(0)
         ) revert ZeroAddress();
         if (_tenorOptions.length == 0) revert ZeroAmount();
 
-        idrx = _idrx;
-        idrxDecimals = IERC20Metadata(address(_idrx)).decimals();
+        usdc = _usdc;
+        usdcDecimals = IERC20Metadata(address(_usdc)).decimals();
         weth = _weth;
         router = _router;
-        ethIdrxFeed = _ethIdrxFeed;
+        ethUsdFeed = _ethUsdFeed;
         akad = _akad;
         nazir = _nazir;
         tenorOptions = _tenorOptions;
         unbondingPeriod = _unbondingPeriod;
 
-        // One whole unit of IDRX, whatever its decimals. Never a hardcoded 1e18.
-        minDeposit = 10 ** idrxDecimals;
-        minHarvest = 10 ** idrxDecimals;
+        // One whole unit of USDC, whatever its decimals. Never a hardcoded 1e18.
+        minDeposit = 10 ** usdcDecimals;
+        minHarvest = 10 ** usdcDecimals;
         peakNavPerPrincipalWad = WAD;
     }
 
     // =====================================================================
-    //                            wqIDRX receipt
+    //                            wqUSDC receipt
     // =====================================================================
 
     /// @dev Matches the deposit asset so "1:1 with principal" is literally true in base units.
     function decimals() public view override returns (uint8) {
-        return idrxDecimals;
+        return usdcDecimals;
     }
 
     /// @dev Mint and burn only. A transferable receipt would decouple the token from the
     ///      per-position tenor and unbonding clocks that gate the claim.
     function _update(address from, address to, uint256 value) internal override {
         if (from != address(0) && to != address(0)) {
-            revert("wqIDRX: non-transferable");
+            revert("wqUSDC: non-transferable");
         }
         super._update(from, to, value);
     }
@@ -238,8 +238,8 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     //                              Waqif flow
     // =====================================================================
 
-    /// @notice Deposit IDRX and lock it for the chosen tenor.
-    /// @param amount IDRX base units
+    /// @notice Deposit USDC and lock it for the chosen tenor.
+    /// @param amount USDC base units
     /// @param tenorIndex index into `tenorOptions`
     function deposit(uint256 amount, uint256 tenorIndex) external nonReentrant returns (uint256 positionId) {
         if (tenorIndex >= tenorOptions.length) revert InvalidTenorIndex(tenorIndex, tenorOptions.length);
@@ -254,7 +254,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         _route(received);
     }
 
-    /// @notice Endow IDRX permanently, as waqf mu'abbad. The corpus is never returned.
+    /// @notice Endow USDC permanently, as waqf mu'abbad. The corpus is never returned.
     ///
     /// @dev This is a one-way door and the contract treats it as one: there is no tenor to wait
     ///      out, no unbonding queue, and `requestUnstake` reverts for the life of the position.
@@ -290,9 +290,9 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
         // Measure what actually landed rather than trusting `amount`: a fee-on-transfer or
         // deflationary asset would otherwise mint receipts against money the vault never received.
-        uint256 balanceBefore = idrx.balanceOf(address(this));
-        idrx.safeTransferFrom(msg.sender, address(this), amount);
-        received = idrx.balanceOf(address(this)) - balanceBefore;
+        uint256 balanceBefore = usdc.balanceOf(address(this));
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
+        received = usdc.balanceOf(address(this)) - balanceBefore;
         if (received == 0) revert ZeroAmount();
         if (received > type(uint128).max) revert AmountTooLarge();
 
@@ -355,11 +355,11 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
         // Spend the idle stable leg first. It exists for exactly this, and it avoids paying
         // swap spread to unwind LST positions that are still earning.
-        uint256 idle = _idleIdrx();
+        uint256 idle = _idleUsdc();
         uint256 obtained = need <= idle ? need : idle;
         uint256 missing = need - obtained;
         if (missing > 0) {
-            obtained += _liquidateToIdrx(missing);
+            obtained += _liquidateToUsdc(missing);
         }
 
         uint256 reserved = obtained >= need ? need : obtained;
@@ -399,7 +399,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         emit Claimed(msg.sender, positionId, payout, principal);
 
         if (payout > 0) {
-            idrx.safeTransfer(msg.sender, payout);
+            usdc.safeTransfer(msg.sender, payout);
         }
     }
 
@@ -412,7 +412,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     /// @dev Only the amount above principal + buffer is ever touched, so a harvest can never
     ///      reduce the vault's backing of principal below the cushion.
     function harvest() external nonReentrant returns (uint256 toNazir, uint256 bounty) {
-        uint256 nav = totalNavIDRX();
+        uint256 nav = totalNavUSDC();
         uint256 floor = harvestFloor();
 
         _updatePeak(nav);
@@ -421,14 +421,14 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         uint256 surplus = nav - floor;
 
         // The endowment's share is left where it already is, invested in the basket, rather than
-        // unwound to IDRX and immediately re-staked. A round trip through the swap desk would pay
+        // unwound to USDC and immediately re-staked. A round trip through the swap desk would pay
         // spread twice to end up in the same position. So only the payable remainder is liquidated;
         // `retain` is credited to the corpus as a bookkeeping entry against value that never moved.
         uint256 retain = perpetualPrincipal > 0 ? (surplus * compoundBps) / BPS : 0;
         uint256 payable_ = surplus - retain;
         if (payable_ < minHarvest) revert SurplusTooSmall(payable_, minHarvest);
 
-        uint256 realised = _liquidateToIdrx(payable_);
+        uint256 realised = _liquidateToUsdc(payable_);
         if (realised == 0) revert NoSurplus(nav, floor);
 
         // Re-measure AFTER the unwind, and distribute only the amount by which NAV still exceeds
@@ -440,7 +440,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         // Measuring afterwards makes the cost fall on the yield being distributed, where it
         // belongs. `floor` is unchanged here because no principal moved during liquidation.
         //
-        // The payout is IDRX leaving 1:1 with no conversion, so post-harvest NAV lands exactly on
+        // The payout is USDC leaving 1:1 with no conversion, so post-harvest NAV lands exactly on
         // the floor rather than approximately on it.
         //
         // Crediting the corpus raises the floor by exactly `retain`, so the payout must clear the
@@ -448,7 +448,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         // is what makes "a harvest never leaves the vault below its floor" hold for compounding
         // harvests too: distributable <= navAfter - floorAfter, hence navAfter - distributable
         // >= floorAfter, which is the floor in force once this call returns.
-        uint256 navAfter = totalNavIDRX();
+        uint256 navAfter = totalNavUSDC();
         uint256 floorAfter = floor + retain;
         uint256 distributable = navAfter > floorAfter ? navAfter - floorAfter : 0;
         if (distributable > realised) distributable = realised;
@@ -466,15 +466,15 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
 
         emit YieldStripped(msg.sender, nazir, toNazir, bounty, nav);
 
-        if (bounty > 0) idrx.safeTransfer(msg.sender, bounty);
-        if (toNazir > 0) idrx.safeTransfer(nazir, toNazir);
+        if (bounty > 0) usdc.safeTransfer(msg.sender, bounty);
+        if (toNazir > 0) usdc.safeTransfer(nazir, toNazir);
     }
 
-    /// @notice Donate IDRX to close a recorded deficit. Permissionless. A takaful reserve, the
+    /// @notice Donate USDC to close a recorded deficit. Permissionless. A takaful reserve, the
     ///         nazir, or anyone at all can make waqif whole.
     function topUp(uint256 amount) external nonReentrant {
         if (amount == 0) revert ZeroAmount();
-        idrx.safeTransferFrom(msg.sender, address(this), amount);
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
         deficit = amount >= deficit ? 0 : deficit - amount;
         emit ToppedUp(msg.sender, amount, deficit);
     }
@@ -483,10 +483,10 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     //                                 Views
     // =====================================================================
 
-    /// @notice Working NAV in IDRX: idle stable leg plus the ETH value of the basket, excluding
-    ///         IDRX already earmarked for positions in unbonding.
-    function totalNavIDRX() public view returns (uint256) {
-        return _idleIdrx() + ethToIdrx(totalAdapterETH());
+    /// @notice Working NAV in USDC: idle stable leg plus the ETH value of the basket, excluding
+    ///         USDC already earmarked for positions in unbonding.
+    function totalNavUSDC() public view returns (uint256) {
+        return _idleUsdc() + ethToUsdc(totalAdapterETH());
     }
 
     function totalAdapterETH() public view returns (uint256 total) {
@@ -523,7 +523,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     /// @notice Total backing as basis points of total obligation. 10000 = exactly fully backed.
-    /// @dev Counts earmarked claim reserves as backing, because they are: they are IDRX sitting
+    /// @dev Counts earmarked claim reserves as backing, because they are: they are USDC sitting
     ///      here with a specific waqif's name on them.
     /// @dev Compounded endowment growth is counted as an obligation alongside principal: once
     ///      retained it may never be paid out, so a vault that could not cover it is not fully
@@ -531,7 +531,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     function solvencyRatioBps() external view returns (uint256) {
         uint256 owed = totalPrincipal + perpetualCompounded;
         if (owed == 0) return BPS;
-        return ((totalNavIDRX() + reservedForClaims) * BPS) / owed;
+        return ((totalNavUSDC() + reservedForClaims) * BPS) / owed;
     }
 
     function positionsOf(address waqif) external view returns (Position[] memory) {
@@ -558,28 +558,28 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     function adapterInfo(uint256 i)
         external
         view
-        returns (address addr, string memory label, uint256 weight, uint256 assetsETH, uint256 assetsIDRX)
+        returns (address addr, string memory label, uint256 weight, uint256 assetsETH, uint256 assetsUSDC)
     {
         IYieldAdapter a = adapters[i];
         addr = address(a);
         label = a.name();
         weight = weightsBps[i];
         assetsETH = a.totalAssetsETH();
-        assetsIDRX = ethToIdrx(assetsETH);
+        assetsUSDC = ethToUsdc(assetsETH);
     }
 
-    /// @notice IDRX base units for a given amount of wei, at the current oracle price.
-    function ethToIdrx(uint256 weiAmount) public view returns (uint256) {
+    /// @notice USDC base units for a given amount of wei, at the current oracle price.
+    function ethToUsdc(uint256 weiAmount) public view returns (uint256) {
         if (weiAmount == 0) return 0;
         uint256 price = _oraclePrice();
-        return (weiAmount * price * (10 ** idrxDecimals)) / (10 ** ethIdrxFeed.decimals()) / WAD;
+        return (weiAmount * price * (10 ** usdcDecimals)) / (10 ** ethUsdFeed.decimals()) / WAD;
     }
 
-    /// @notice Wei for a given amount of IDRX base units, at the current oracle price.
-    function idrxToEth(uint256 idrxAmount) public view returns (uint256) {
-        if (idrxAmount == 0) return 0;
+    /// @notice Wei for a given amount of USDC base units, at the current oracle price.
+    function usdcToEth(uint256 usdcAmount) public view returns (uint256) {
+        if (usdcAmount == 0) return 0;
         uint256 price = _oraclePrice();
-        return (idrxAmount * (10 ** ethIdrxFeed.decimals()) * WAD) / price / (10 ** idrxDecimals);
+        return (usdcAmount * (10 ** ethUsdFeed.decimals()) * WAD) / price / (10 ** usdcDecimals);
     }
 
     // =====================================================================
@@ -591,14 +591,14 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         return _positions[waqif][positionId];
     }
 
-    /// @dev IDRX held here that is NOT already promised to an unbonding position.
-    function _idleIdrx() private view returns (uint256) {
-        uint256 bal = idrx.balanceOf(address(this));
+    /// @dev USDC held here that is NOT already promised to an unbonding position.
+    function _idleUsdc() private view returns (uint256) {
+        uint256 bal = usdc.balanceOf(address(this));
         return bal > reservedForClaims ? bal - reservedForClaims : 0;
     }
 
     function _oraclePrice() private view returns (uint256) {
-        (, int256 answer,, uint256 updatedAt,) = ethIdrxFeed.latestRoundData();
+        (, int256 answer,, uint256 updatedAt,) = ethUsdFeed.latestRoundData();
         if (answer <= 0) revert BadOraclePrice(answer);
         // A feed that has stopped reporting keeps returning its last value forever. Refusing to
         // price against a stale answer is the whole defence.
@@ -615,51 +615,51 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     /// @dev Split a fresh deposit across the basket. The unallocated remainder simply stays as
-    ///      IDRX, so no transfer is needed and it is already here.
+    ///      USDC, so no transfer is needed and it is already here.
     function _route(uint256 amount) private {
         uint256 n = adapters.length;
         for (uint256 i; i < n; ++i) {
             uint256 portion = (amount * weightsBps[i]) / BPS;
             if (portion == 0) continue;
-            uint256 ethOut = _swapIdrxToEth(portion);
+            uint256 ethOut = _swapUsdcToEth(portion);
             if (ethOut == 0) continue;
             adapters[i].deposit{value: ethOut}();
             emit Routed(i, portion, ethOut);
         }
     }
 
-    function _swapIdrxToEth(uint256 idrxAmount) private returns (uint256 ethOut) {
-        uint256 expected = idrxToEth(idrxAmount);
+    function _swapUsdcToEth(uint256 usdcAmount) private returns (uint256 ethOut) {
+        uint256 expected = usdcToEth(usdcAmount);
         uint256 minOut = (expected * (BPS - maxSlippageBps)) / BPS;
 
-        idrx.forceApprove(address(router), idrxAmount);
-        uint256 wethOut = router.swapExactInput(address(idrx), address(weth), idrxAmount, minOut, address(this));
+        usdc.forceApprove(address(router), usdcAmount);
+        uint256 wethOut = router.swapExactInput(address(usdc), address(weth), usdcAmount, minOut, address(this));
 
         weth.withdraw(wethOut);
         return wethOut;
     }
 
-    function _swapEthToIdrx(uint256 ethAmount) private returns (uint256 idrxOut) {
+    function _swapEthToUsdc(uint256 ethAmount) private returns (uint256 usdcOut) {
         weth.deposit{value: ethAmount}();
 
-        uint256 expected = ethToIdrx(ethAmount);
+        uint256 expected = ethToUsdc(ethAmount);
         uint256 minOut = (expected * (BPS - maxSlippageBps)) / BPS;
 
         IERC20(address(weth)).forceApprove(address(router), ethAmount);
-        idrxOut = router.swapExactInput(address(weth), address(idrx), ethAmount, minOut, address(this));
+        usdcOut = router.swapExactInput(address(weth), address(usdc), ethAmount, minOut, address(this));
     }
 
-    /// @dev Unwind roughly `targetIdrx` worth of basket, proportionally across adapters so the
-    ///      weights stay honoured, and convert the proceeds back to IDRX.
+    /// @dev Unwind roughly `targetUsdc` worth of basket, proportionally across adapters so the
+    ///      weights stay honoured, and convert the proceeds back to USDC.
     ///
-    ///      May return slightly MORE than requested. Getting `targetIdrx` out means crossing two
-    ///      swap legs (LST->WETH inside the adapter, then WETH->IDRX here), so liquidating the
+    ///      May return slightly MORE than requested. Getting `targetUsdc` out means crossing two
+    ///      swap legs (LST->WETH inside the adapter, then WETH->USDC here), so liquidating the
     ///      exact nominal amount always lands short by about twice the spread. The target is
     ///      grossed up for both legs at the vault's own slippage tolerance, and any excess simply
-    ///      stays as idle IDRX, moved from the LST sleeve into the stable sleeve rather than lost.
+    ///      stays as idle USDC, moved from the LST sleeve into the stable sleeve rather than lost.
     ///      Callers must cap what they pay out, never assuming the return equals the request.
-    function _liquidateToIdrx(uint256 targetIdrx) private returns (uint256 obtainedIdrx) {
-        uint256 targetEth = idrxToEth(targetIdrx);
+    function _liquidateToUsdc(uint256 targetUsdc) private returns (uint256 obtainedUsdc) {
+        uint256 targetEth = usdcToEth(targetUsdc);
         if (targetEth == 0) return 0;
 
         uint256 denom = BPS - maxSlippageBps;
@@ -690,7 +690,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
         uint256 ethGot = address(this).balance - ethBefore;
         if (ethGot == 0) return 0;
 
-        obtainedIdrx = _swapEthToIdrx(ethGot);
+        obtainedUsdc = _swapEthToUsdc(ethGot);
     }
 
     /// @dev Pool label stamped onto a perpetual position's akad certificate.
@@ -762,7 +762,7 @@ contract SWRVault is ERC20, Ownable, ReentrancyGuard {
     function setOracle(IAggregatorV3 _feed, uint256 _maxOracleAge) external onlyOwner {
         if (address(_feed) == address(0)) revert ZeroAddress();
         require(_maxOracleAge > 0, "oracle age = 0");
-        ethIdrxFeed = _feed;
+        ethUsdFeed = _feed;
         maxOracleAge = _maxOracleAge;
         emit OracleUpdated(address(_feed), _maxOracleAge);
     }

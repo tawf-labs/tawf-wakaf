@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Card, Label, MotionCard, Section, Stat, Term } from "../components/ui";
 import { fadeUp } from "../lib/motion";
-import { bpsToPercent, formatRp, formatTenor } from "../lib/format";
+import { bpsToPercent, formatUsd, formatTenor } from "../lib/format";
 import { useVaultStats } from "../lib/useVault";
 
 function Hero() {
@@ -35,7 +35,7 @@ function Hero() {
             Give once. Keep giving forever.
           </h1>
           <p className="mt-6 text-lg text-tawf-muted md:text-xl">
-            Endow IDRX permanently and the corpus is preserved on-chain while its staking yield
+            Endow USDC permanently and the corpus is preserved on-chain while its staking yield
             reaches the Nazir, year after year. Or lend it for a fixed term and take your principal
             back in full. Both akad are enforced by the contract, not by us.
           </p>
@@ -58,16 +58,16 @@ function Hero() {
           <Card className="grid grid-cols-2 gap-8">
             <Stat
               label="Total Principal Managed"
-              value={formatRp(stats.totalPrincipal, stats.decimals, { compact: true })}
+              value={formatUsd(stats.totalPrincipal, stats.decimals, { compact: true })}
             />
             <Stat
               label="Perpetual Corpus"
-              value={formatRp(stats.perpetualCorpus, stats.decimals, { compact: true })}
+              value={formatUsd(stats.perpetualCorpus, stats.decimals, { compact: true })}
               tone="good"
             />
             <Stat
               label="Distributed to Nazir"
-              value={formatRp(stats.totalYieldStripped, stats.decimals, { compact: true })}
+              value={formatUsd(stats.totalYieldStripped, stats.decimals, { compact: true })}
               tone="good"
             />
             <Stat
@@ -237,14 +237,14 @@ function HowItWorks() {
     {
       icon: Coins,
       title: "Choose your akad, then deposit",
-      body: "Endow permanently or lend for a fixed term. Either way the vault mints a non-transferable wqIDRX receipt and an Akad certificate NFT that states which akad you actually signed.",
+      body: "Endow permanently or lend for a fixed term. Either way the vault mints a non-transferable wqUSDC receipt and an Akad certificate NFT that states which akad you actually signed.",
       to: "/earn",
       cta: "Open the waqf pool",
     },
     {
       icon: Landmark,
       title: "Route into the basket",
-      body: "Your rupiah is split across wstETH, weETH and an IDRX stable reserve. The reserve stands in for the shariah RWA sleeve and cushions drawdowns.",
+      body: "Your USDC is split across wstETH, weETH and a USDC stable reserve. The reserve stands in for the shariah RWA sleeve and cushions drawdowns.",
       to: "/harvest",
       cta: "Inspect the portfolio",
     },
@@ -317,8 +317,8 @@ function RiskNote() {
 
         <div className="mt-8 space-y-5 text-lg leading-relaxed">
           <p>
-            Your capital is recorded in rupiah (IDRX), but is collateralized by assets
-            that move with the ETH price. If ETH weakens against rupiah, the collateral
+            Your capital is recorded in dollars (USDC), but is collateralized by assets
+            that move with the ETH price. If ETH weakens against the dollar, the collateral
             value drops below the corpus, and no line of code can create the difference.
           </p>
           <p>
@@ -350,13 +350,13 @@ function RiskNote() {
           <div>
             <p className="label-caps">Recorded Deficit</p>
             <p className="tnum mt-2 font-serif text-3xl text-white">
-              {formatRp(stats.deficit, stats.decimals)}
+              {formatUsd(stats.deficit, stats.decimals)}
             </p>
           </div>
           <div>
             <p className="label-caps">Perpetual Corpus</p>
             <p className="tnum mt-2 font-serif text-3xl text-white">
-              {formatRp(stats.perpetualCorpus, stats.decimals)}
+              {formatUsd(stats.perpetualCorpus, stats.decimals)}
             </p>
           </div>
         </div>
@@ -372,8 +372,8 @@ function LaunchCta() {
         <Wallet className="mx-auto h-10 w-10 text-tawf-gold" aria-hidden />
         <h2 className="mt-6 font-serif text-4xl">Ready to place your waqf?</h2>
         <p className="mt-4 text-lg text-tawf-muted">
-          The pool runs on testnet. Claim IDRX from the faucet and deposit under either akad.
-          Nothing here has monetary value.
+          The pool runs on Arbitrum Sepolia. Get testnet USDC from Circle's faucet and deposit
+          under either akad. Nothing here has monetary value.
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <Link to="/earn" className="btn-primary">

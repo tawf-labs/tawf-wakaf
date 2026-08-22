@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 /// @notice Minimal exact-input swap, denominated in whole tokens in / tokens out.
 ///
-/// SWR needs this because principal is held in IDRX while yield is earned in ETH,
+/// SWR needs this because principal is held in USDC while yield is earned in ETH,
 /// every route in and out of the basket crosses that currency boundary.
 ///
 /// On Sepolia this is `MockSwapRouter`, priced off the same oracle the vault uses.

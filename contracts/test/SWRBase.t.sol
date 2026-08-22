@@ -13,7 +13,7 @@ import {ISwapRouter, IWETH} from "../src/interfaces/ISwapRouter.sol";
 import {IAggregatorV3} from "../src/interfaces/IAggregatorV3.sol";
 import {IStETH, IWstETH, IEETH, IWeETH, IEtherFiLiquidityPool} from "../src/interfaces/ILST.sol";
 
-import {MockIDRX} from "../src/mocks/MockIDRX.sol";
+import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 import {MockWETH} from "../src/mocks/MockWETH.sol";
 import {MockAggregator} from "../src/mocks/MockAggregator.sol";
 import {MockStETH} from "../src/mocks/MockStETH.sol";
@@ -23,15 +23,15 @@ import {MockSwapRouter} from "../src/mocks/MockSwapRouter.sol";
 
 /// @notice Shared fixture: the whole SWR stack on mocks.
 ///
-/// IDRX is deliberately given 2 decimals here. Pairing a 2-decimal asset with 18-decimal ETH is a
-/// far harsher exercise of the vault's normalisation math than another 18-decimal token would be,
-/// and wrong-decimal handling is the single most common way money silently vanishes.
+/// USDC is given 6 decimals, matching the real token. Pairing a 6-decimal asset with 18-decimal
+/// ETH is a solid exercise of the vault's normalisation math (a 1e12 base-unit ratio), and
+/// wrong-decimal handling is the single most common way money silently vanishes.
 abstract contract SWRBase is Test {
-    uint8 internal constant IDRX_DECIMALS = 2;
+    uint8 internal constant USDC_DECIMALS = 6;
     uint8 internal constant FEED_DECIMALS = 8;
 
-    /// @dev ETH/IDR ~ Rp 32,000,000, roughly ETH/USD 1963 (the live Sepolia feed) x USD/IDR 16,300.
-    int256 internal constant ETH_IDRX_PRICE = int256(32_000_000) * int256(10) ** FEED_DECIMALS;
+    /// @dev ETH/USD ~ $2,400, the same magnitude as the live Arbitrum Sepolia Chainlink feed.
+    int256 internal constant ETH_USD_PRICE = int256(2_400) * int256(10) ** FEED_DECIMALS;
 
     uint256 internal constant TENOR_SHORT = 10 minutes;
     uint256 internal constant TENOR_MID = 30 minutes;
@@ -40,9 +40,9 @@ abstract contract SWRBase is Test {
 
     uint256 internal constant W_WSTETH = 4_000; // 40%
     uint256 internal constant W_WEETH = 3_000; // 30%
-    // remaining 30% stays as idle IDRX, the stable leg
+    // remaining 30% stays as idle USDC, the stable leg
 
-    MockIDRX internal idrx;
+    MockUSDC internal usdc;
     MockWETH internal weth;
     MockAggregator internal feed;
     MockStETH internal stETH;
@@ -63,9 +63,9 @@ abstract contract SWRBase is Test {
     address internal keeper = makeAddr("keeper");
 
     function setUp() public virtual {
-        idrx = new MockIDRX(IDRX_DECIMALS);
+        usdc = new MockUSDC(USDC_DECIMALS);
         weth = new MockWETH();
-        feed = new MockAggregator(FEED_DECIMALS, "ETH / IDRX", ETH_IDRX_PRICE);
+        feed = new MockAggregator(FEED_DECIMALS, "ETH / USD", ETH_USD_PRICE);
 
         stETH = new MockStETH();
         wstETH = new MockWstETH(stETH);
@@ -75,11 +75,11 @@ abstract contract SWRBase is Test {
         eETH.setLiquidityPool(address(etherFiPool));
         weETH = new MockWeETH(eETH);
 
-        router = new MockSwapRouter(IERC20(address(idrx)), IERC20(address(weth)), IAggregatorV3(address(feed)));
+        router = new MockSwapRouter(IERC20(address(usdc)), IERC20(address(weth)), IAggregatorV3(address(feed)));
         router.setEthPegged(address(stETH), true);
         router.setEthPegged(address(eETH), true);
 
-        akad = new AkadCertificateNFT(IDRX_DECIMALS, "IDRX");
+        akad = new AkadCertificateNFT(USDC_DECIMALS, "USDC");
 
         uint256[] memory tenors = new uint256[](3);
         tenors[0] = TENOR_SHORT;
@@ -87,7 +87,7 @@ abstract contract SWRBase is Test {
         tenors[2] = TENOR_LONG;
 
         vault = new SWRVault(
-            IERC20(address(idrx)),
+            IERC20(address(usdc)),
             IWETH(address(weth)),
             ISwapRouter(address(router)),
             IAggregatorV3(address(feed)),
@@ -128,13 +128,13 @@ abstract contract SWRBase is Test {
 
         _fundRouter();
 
-        idrx.mint(alice, idr(50_000_000));
-        idrx.mint(bob, idr(50_000_000));
+        usdc.mint(alice, usd(50_000_000));
+        usdc.mint(bob, usd(50_000_000));
     }
 
     /// @dev The router is a pre-funded desk, not an AMM, so it needs deep inventory of both legs.
     function _fundRouter() internal {
-        idrx.mint(address(router), idr(1_000_000_000_000));
+        usdc.mint(address(router), usd(1_000_000_000_000));
         vm.deal(address(this), 100_000 ether);
         weth.deposit{value: 50_000 ether}();
         weth.transfer(address(router), 50_000 ether);
@@ -142,21 +142,21 @@ abstract contract SWRBase is Test {
 
     // --- helpers ----------------------------------------------------------
 
-    /// @notice Whole rupiah -> IDRX base units.
-    function idr(uint256 whole) internal pure returns (uint256) {
-        return whole * (10 ** IDRX_DECIMALS);
+    /// @notice Whole dollars -> USDC base units.
+    function usd(uint256 whole) internal pure returns (uint256) {
+        return whole * (10 ** USDC_DECIMALS);
     }
 
     function _deposit(address who, uint256 amount, uint256 tenorIndex) internal returns (uint256 positionId) {
         vm.startPrank(who);
-        idrx.approve(address(vault), amount);
+        usdc.approve(address(vault), amount);
         positionId = vault.deposit(amount, tenorIndex);
         vm.stopPrank();
     }
 
     function _depositPerpetual(address who, uint256 amount) internal returns (uint256 positionId) {
         vm.startPrank(who);
-        idrx.approve(address(vault), amount);
+        usdc.approve(address(vault), amount);
         positionId = vault.depositPerpetual(amount);
         vm.stopPrank();
     }
@@ -179,7 +179,7 @@ abstract contract SWRBase is Test {
         feed.setAnswer(current);
     }
 
-    /// @notice Move the ETH/IDRX price. Survives subsequent `_warp` calls.
+    /// @notice Move the ETH/USDC price. Survives subsequent `_warp` calls.
     function _setPrice(int256 newPrice) internal {
         feed.setAnswer(newPrice);
     }

@@ -1,30 +1,29 @@
 import { formatUnits } from "viem";
 
-/// IDRX base units -> a rupiah string. Indonesian convention: dots for thousands, no decimals
-/// on whole amounts. `Rp 750.000`, never `Rp 750,000.00`.
-export function formatRp(base: bigint | undefined, decimals: number, opts?: { compact?: boolean }): string {
+/// USDC base units -> a dollar string. `$750`, never `$750.00`; sub-dollar amounts (harvest
+/// bounties, dust) keep two decimals so they don't render as a misleading "$0".
+export function formatUsd(base: bigint | undefined, decimals: number, opts?: { compact?: boolean }): string {
   if (base === undefined) return "n/a";
   const asNumber = Number(formatUnits(base, decimals));
 
   if (opts?.compact && Math.abs(asNumber) >= 1_000_000) {
-    return `Rp ${new Intl.NumberFormat("en-US", {
+    return `$${new Intl.NumberFormat("en-US", {
       notation: "compact",
       maximumFractionDigits: 1,
     }).format(asNumber)}`;
   }
 
-  // Sub-rupiah amounts (harvest bounties, dust) would otherwise render as a misleading "Rp 0".
   const fractionDigits = asNumber !== 0 && Math.abs(asNumber) < 1 ? 2 : 0;
 
-  return `Rp ${new Intl.NumberFormat("en-US", {
+  return `$${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   }).format(asNumber)}`;
 }
 
-/// Parse a user-typed rupiah figure into IDRX base units. Accepts "750.000" and "750000".
-export function parseRp(input: string, decimals: number): bigint {
-  const cleaned = input.replace(/[^\d,]/g, "").replace(",", ".");
+/// Parse a user-typed dollar figure into USDC base units. Accepts "$750", "1,234.56", "750000".
+export function parseUsd(input: string, decimals: number): bigint {
+  const cleaned = input.replace(/[^\d.]/g, "");
   if (!cleaned) return 0n;
   const [whole, frac = ""] = cleaned.split(".");
   const padded = (frac + "0".repeat(decimals)).slice(0, decimals);

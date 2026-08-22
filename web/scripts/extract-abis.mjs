@@ -16,8 +16,6 @@ const dest = resolve(here, "../src/generated");
 const WANTED = {
   SWRVault: "SWRVault.sol/SWRVault.json",
   AkadCertificateNFT: "AkadCertificateNFT.sol/AkadCertificateNFT.json",
-  MockIDRX: "MockIDRX.sol/MockIDRX.json",
-  MockAggregator: "MockAggregator.sol/MockAggregator.json",
   MockSwapRouter: "MockSwapRouter.sol/MockSwapRouter.json",
   MockRebasingLST: "MockRebasingLST.sol/MockRebasingLST.json",
 };

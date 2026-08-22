@@ -3,7 +3,7 @@ import { useAccount } from "wagmi";
 import { ArrowRight } from "lucide-react";
 import { PositionList } from "../components/PositionList";
 import { Card, Label, MotionCard, PageHeader, Section, Stat } from "../components/ui";
-import { formatRp } from "../lib/format";
+import { formatUsd } from "../lib/format";
 import { useVaultStats, useWaqif } from "../lib/useVault";
 
 /// The waqif's own view. Deliberately separate from the pool page: depositing and managing what
@@ -44,20 +44,20 @@ export default function Dashboard() {
           <Card className="mt-12 grid grid-cols-2 gap-8 md:grid-cols-4">
             <Stat
               label="Endowed"
-              value={formatRp(endowedTotal, stats.decimals)}
+              value={formatUsd(endowedTotal, stats.decimals)}
               tone="good"
               hint={`${endowed.length} perpetual · never returned`}
             />
-            <Stat label="Locked" value={formatRp(lockedTotal, stats.decimals)} hint={`${active.length} fixed tenor`} />
+            <Stat label="Locked" value={formatUsd(lockedTotal, stats.decimals)} hint={`${active.length} fixed tenor`} />
             <Stat
               label="Unbonding"
-              value={formatRp(unbondingTotal, stats.decimals)}
+              value={formatUsd(unbondingTotal, stats.decimals)}
               hint={`${unbonding.length} position(s)`}
             />
             <Stat
               label="Receipt Balance"
-              value={formatRp(waqif.wqBalance, stats.decimals)}
-              hint={`wqIDRX · ${settled.length} completed`}
+              value={formatUsd(waqif.wqBalance, stats.decimals)}
+              hint={`wqUSDC · ${settled.length} completed`}
             />
           </Card>
         </MotionCard>

@@ -10,7 +10,7 @@ import {ISwapRouter, IWETH} from "../src/interfaces/ISwapRouter.sol";
 import {IAggregatorV3} from "../src/interfaces/IAggregatorV3.sol";
 import {IStETH, IWstETH, IEETH, IWeETH, IEtherFiLiquidityPool} from "../src/interfaces/ILST.sol";
 
-import {MockIDRX} from "../src/mocks/MockIDRX.sol";
+import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 import {MockAggregator} from "../src/mocks/MockAggregator.sol";
 import {MockSwapRouter} from "../src/mocks/MockSwapRouter.sol";
 
@@ -44,7 +44,7 @@ contract ForkLSTTest is Test {
 
     bool internal forkLive;
 
-    MockIDRX internal idrx;
+    MockUSDC internal usdc;
     MockAggregator internal feed;
     MockSwapRouter internal router;
     WstETHAdapter internal wstAdapter;
@@ -59,9 +59,9 @@ contract ForkLSTTest is Test {
         vm.createSelectFork(rpc, PINNED_BLOCK);
         forkLive = true;
 
-        idrx = new MockIDRX(2);
-        feed = new MockAggregator(8, "ETH / IDRX", int256(32_000_000) * 1e8);
-        router = new MockSwapRouter(IERC20(address(idrx)), IERC20(WETH), IAggregatorV3(address(feed)));
+        usdc = new MockUSDC(2);
+        feed = new MockAggregator(8, "ETH / USD", int256(32_000_000) * 1e8);
+        router = new MockSwapRouter(IERC20(address(usdc)), IERC20(WETH), IAggregatorV3(address(feed)));
 
         // Only the exit leg goes through the router. The staking legs are entirely real.
         router.setEthPegged(STETH, true);

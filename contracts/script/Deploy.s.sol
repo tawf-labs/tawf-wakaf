@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {SWRVault} from "../src/SWRVault.sol";
 import {AkadCertificateNFT} from "../src/AkadCertificateNFT.sol";
@@ -13,7 +14,7 @@ import {ISwapRouter, IWETH} from "../src/interfaces/ISwapRouter.sol";
 import {IAggregatorV3} from "../src/interfaces/IAggregatorV3.sol";
 import {IStETH, IWstETH, IEETH, IWeETH, IEtherFiLiquidityPool} from "../src/interfaces/ILST.sol";
 
-import {MockIDRX} from "../src/mocks/MockIDRX.sol";
+import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 import {MockWETH} from "../src/mocks/MockWETH.sol";
 import {MockAggregator} from "../src/mocks/MockAggregator.sol";
 import {MockStETH} from "../src/mocks/MockStETH.sol";
@@ -21,34 +22,55 @@ import {MockEETH, MockEtherFiLiquidityPool} from "../src/mocks/MockEETH.sol";
 import {MockWstETH, MockWeETH} from "../src/mocks/MockWrappedLST.sol";
 import {MockSwapRouter} from "../src/mocks/MockSwapRouter.sol";
 
-/// @notice Deploys the full SWR stack to Sepolia (or a local anvil).
+/// @notice Deploys the full SWR stack, either to Arbitrum Sepolia (real USDC) or to a local anvil.
 ///
-/// Sepolia gets interface-identical MOCKS of Lido and ether.fi rather than the real deployments,
-/// because Lido's Sepolia deployment is verifiably dead: the wstETH rate has been frozen for about
-/// a year with zero rebase events, the withdrawal queue reports `isPaused: true`, and Lido's own
-/// docs mark the deployment deprecated. Pointing at it would produce a vault that never earns and
-/// never returns principal. The real integration is proven by `test/ForkLST.t.sol` against mainnet.
+/// ## Arbitrum Sepolia — real USDC, real oracle
 ///
-/// Usage:
+/// The deposit asset is the REAL Circle USDC (verified: symbol `USDC`, 6 decimals), the NAV oracle
+/// is the REAL Chainlink ETH/USD feed (verified), and WETH is the canonical Arbitrum Sepolia
+/// wrapper. The staking venues (Lido/ether.fi) and the swap desk remain interface-identical mocks,
+/// because neither protocol has a usable Arbitrum Sepolia deployment to point at. The real
+/// integration is proven by `test/ForkLST.t.sol` against mainnet.
+///
+/// USDC cannot be minted, so the swap desk's USDC inventory is NOT seeded here — top it up after
+/// deploy by transferring USDC to the router (see README). WETH inventory is seeded from the
+/// deployer's ETH.
+///
+/// ## anvil / Ethereum Sepolia — mock USDC, mock oracle
+///
+/// Uses `MockUSDC` (open faucet) and `MockAggregator` (owner-priced ETH/USD) so the full lifecycle
+/// is demoable locally, where time can be warped.
+///
+/// Usage (Arbitrum Sepolia):
 ///   forge script script/Deploy.s.sol:Deploy \
-///     --rpc-url $SEPOLIA_RPC_URL --account swr-deployer --broadcast --verify
+///     --rpc-url $ARBITRUM_SEPOLIA_RPC_URL --account tawf-deployer \
+///     --sender $(cast wallet address --account tawf-deployer) --broadcast
+///
+/// `--sender` MUST equal the account address: `msg.sender` inside the script otherwise stays at
+/// Foundry's default `0x1804c8AB…` while the broadcast is signed by the keystore, and the vault
+/// end up owned by a phantom address (`OwnableUnauthorizedAccount` on `setAdapters`).
 contract Deploy is Script {
     uint256 constant SEPOLIA = 11155111;
+    uint256 constant ARBITRUM_SEPOLIA = 421614;
 
     /// @dev Verified live onchain this session.
     address constant SEPOLIA_WETH = 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9;
+    address constant ARBITRUM_SEPOLIA_WETH = 0x980B62Da83eFf3D4576C647993b0c1D7faf17c73;
+    address constant ARBITRUM_SEPOLIA_USDC = 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d;
+    address constant ARBITRUM_SEPOLIA_ETH_USD_FEED = 0xd30e2101a97dcbAeBCBC04F14C3f624E67A35165;
 
-    uint8 constant IDRX_DECIMALS = 2;
+    uint8 constant USDC_DECIMALS = 6;
     uint8 constant FEED_DECIMALS = 8;
 
-    /// @dev ETH/IDR ~ Rp 32,000,000, from the live Sepolia ETH/USD feed (~$1963) x USD/IDR ~16,300.
-    int256 constant INITIAL_ETH_IDRX = int256(32_000_000) * int256(10) ** FEED_DECIMALS;
+    /// @dev ~$2,400, a plausible ETH/USD for the anvil/Sepolia mock. Arbitrum Sepolia ignores this
+    ///      and reads the live Chainlink feed instead.
+    int256 constant INITIAL_ETH_USD = int256(2_400) * int256(10) ** FEED_DECIMALS;
 
     uint256 constant W_WSTETH = 4_000; // 40%
     uint256 constant W_WEETH = 3_000; // 30%, leaving 30% as the idle stable leg
 
     struct Deployment {
-        address idrx;
+        address usdc;
         address weth;
         address feed;
         address router;
@@ -67,12 +89,11 @@ contract Deploy is Script {
         address deployer = msg.sender;
         address nazir = vm.envOr("NAZIR_ADDRESS", deployer);
         uint256 routerEthSeed = vm.envOr("ROUTER_WETH_SEED", uint256(0.05 ether));
+        bool isArb = block.chainid == ARBITRUM_SEPOLIA;
 
-        // Real waqf mu'aqqat terms, the same ones a mainnet script would seed. These used to be
-        // 10/30/60 minutes so a demo could sit through a full maturity, which made the picker read
-        // as a lockup rather than an endowment. The maturity path is covered by the test suite and
-        // by smoke.sh on anvil, both of which warp time, so a public testnet does not need a tenor
-        // short enough to wait out.
+        // Real waqf mu'aqqat terms, the same ones a mainnet script would seed. The maturity path is
+        // covered by the test suite and by smoke.sh on anvil, both of which warp time, so a public
+        // testnet does not need a tenor short enough to wait out.
         uint256[] memory tenors = new uint256[](3);
         tenors[0] = 30 days;
         tenors[1] = 90 days;
@@ -81,17 +102,25 @@ contract Deploy is Script {
 
         console.log("=== SWR deploy ===");
         console.log("chainid  :", block.chainid);
+        console.log("mode     :", isArb ? "Arbitrum Sepolia (real USDC)" : "local/mock USDC");
         console.log("deployer :", deployer);
         console.log("nazir   :", nazir);
 
         vm.startBroadcast();
 
-        // --- assets --------------------------------------------------------
-        MockIDRX idrx = new MockIDRX(IDRX_DECIMALS);
+        // --- deposit asset + oracle -----------------------------------------
+        IERC20 usdc = isArb
+            ? IERC20(ARBITRUM_SEPOLIA_USDC)
+            : IERC20(address(new MockUSDC(USDC_DECIMALS)));
+        uint8 assetDecimals = IERC20Metadata(address(usdc)).decimals();
 
-        address weth = block.chainid == SEPOLIA ? SEPOLIA_WETH : address(new MockWETH());
+        address weth = isArb
+            ? ARBITRUM_SEPOLIA_WETH
+            : (block.chainid == SEPOLIA ? SEPOLIA_WETH : address(new MockWETH()));
 
-        MockAggregator feed = new MockAggregator(FEED_DECIMALS, "ETH / IDRX", INITIAL_ETH_IDRX);
+        IAggregatorV3 feed = isArb
+            ? IAggregatorV3(ARBITRUM_SEPOLIA_ETH_USD_FEED)
+            : IAggregatorV3(address(new MockAggregator(FEED_DECIMALS, "ETH / USD", INITIAL_ETH_USD)));
 
         // --- staking venues (mocked, interface-identical to mainnet) --------
         MockStETH stETH = new MockStETH();
@@ -103,19 +132,18 @@ contract Deploy is Script {
         MockWeETH weETH = new MockWeETH(eETH);
 
         // --- swap desk ------------------------------------------------------
-        MockSwapRouter router =
-            new MockSwapRouter(IERC20(address(idrx)), IERC20(weth), IAggregatorV3(address(feed)));
+        MockSwapRouter router = new MockSwapRouter(usdc, IERC20(weth), feed);
         router.setEthPegged(address(stETH), true);
         router.setEthPegged(address(eETH), true);
 
         // --- core -----------------------------------------------------------
-        AkadCertificateNFT akad = new AkadCertificateNFT(IDRX_DECIMALS, "IDRX");
+        AkadCertificateNFT akad = new AkadCertificateNFT(assetDecimals, "USDC");
 
         SWRVault vault = new SWRVault(
-            IERC20(address(idrx)),
+            usdc,
             IWETH(weth),
             ISwapRouter(address(router)),
-            IAggregatorV3(address(feed)),
+            feed,
             akad,
             nazir,
             tenors,
@@ -149,14 +177,16 @@ contract Deploy is Script {
         weights[1] = W_WEETH;
         vault.setAdapters(adapters, weights);
 
-        // The mock oracle has no node operators keeping it fresh, so allow a long window and rely
-        // on the permissionless `poke()` for liveness. A real feed would use hours, not days.
-        vault.setRiskParams(1_000, 50, 100, 7 days);
+        // A live Chainlink feed is kept fresh by its own node operators, so a few hours is plenty
+        // of headroom. The mock feed has nobody to keep it alive, so allow a long window.
+        vault.setRiskParams(1_000, 50, 100, isArb ? 24 hours : 7 days);
 
         // --- seed the swap desk ---------------------------------------------
-        // A full deposit-then-exit cycle drains WETH inventory, so this is the practical cap on
-        // demo volume. Anyone can refill via `router.fundWithEth()`.
-        idrx.mint(address(router), 1_000_000_000_000 * (10 ** IDRX_DECIMALS));
+        // On anvil/Sepolia the mock token can be minted. On Arbitrum Sepolia the real USDC cannot,
+        // so its inventory is topped up after deploy by transferring USDC to the router (README).
+        if (!isArb) {
+            MockUSDC(address(usdc)).mint(address(router), 1_000_000_000_000 * (10 ** USDC_DECIMALS));
+        }
         if (routerEthSeed > 0) {
             router.fundWithEth{value: routerEthSeed}();
         }
@@ -164,7 +194,7 @@ contract Deploy is Script {
         vm.stopBroadcast();
 
         d = Deployment({
-            idrx: address(idrx),
+            usdc: address(usdc),
             weth: weth,
             feed: address(feed),
             router: address(router),
@@ -188,9 +218,9 @@ contract Deploy is Script {
         console.log("--- addresses ---");
         console.log("SWRVault      :", d.vault);
         console.log("AkadCertificateNFT  :", d.akad);
-        console.log("MockIDRX      :", d.idrx);
+        console.log("USDC          :", d.usdc);
         console.log("WETH          :", d.weth);
-        console.log("ETH/IDRX feed :", d.feed);
+        console.log("ETH/USD feed  :", d.feed);
         console.log("SwapRouter    :", d.router);
         console.log("wstETHAdapter :", d.wstAdapter);
         console.log("weETHAdapter  :", d.weETHAdapter);
@@ -206,7 +236,7 @@ contract Deploy is Script {
             '  "chainId": ', vm.toString(block.chainid), ",\n",
             '  "vault": "', vm.toString(d.vault), '",\n',
             '  "akad": "', vm.toString(d.akad), '",\n',
-            '  "idrx": "', vm.toString(d.idrx), '",\n',
+            '  "usdc": "', vm.toString(d.usdc), '",\n',
             '  "weth": "', vm.toString(d.weth), '",\n',
             '  "feed": "', vm.toString(d.feed), '",\n',
             '  "router": "', vm.toString(d.router), '",\n',

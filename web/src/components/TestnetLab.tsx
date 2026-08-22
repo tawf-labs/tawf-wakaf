@@ -1,23 +1,22 @@
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import { FlaskConical, RefreshCw, TrendingUp } from "lucide-react";
+import { FlaskConical, TrendingUp } from "lucide-react";
 import { CONTRACTS } from "../lib/config";
-import { MockAggregatorAbi, MockRebasingLSTAbi } from "../generated/abis";
+import { MockRebasingLSTAbi } from "../generated/abis";
 import { useOnchainAction } from "../lib/useOnchainAction";
 import { useVaultStats } from "../lib/useVault";
 import { Button, Card, ErrorNote, Label, SuccessNote } from "./ui";
 
 const stETH = CONTRACTS.stETH as `0x${string}`;
 const eETH = CONTRACTS.eETH as `0x${string}`;
-const feed = CONTRACTS.feed as `0x${string}`;
 
 const STEPS = [100, 250, 500] as const;
 
 /// Testnet-only controls.
 ///
 /// On a real network validator rewards arrive on their own and the vault simply observes them.
-/// The Sepolia deployment uses interface-identical mocks, because Lido's own Sepolia deployment is
-/// deprecated, its rate frozen and its withdrawal queue paused, so nothing ever accrues unless
+/// The Arbitrum Sepolia deployment uses interface-identical mocks, because Lido and ether.fi have
+/// no usable Arbitrum Sepolia deployment, so nothing ever accrues unless
 /// somebody says so. Without this panel `harvest()` can never have a surplus to strip and the
 /// yield-stripping half of the protocol is undemonstrable.
 ///
@@ -30,7 +29,6 @@ export function TestnetLab() {
   const [bps, setBps] = useState<number>(500);
 
   const accrue = useOnchainAction(() => stats.refetch());
-  const poke = useOnchainAction(() => stats.refetch());
 
   // Growing a pool of zero yields zero, and the mock reverts on a zero reward. Nothing is staked
   // until the first deposit routes ETH through the adapters.
@@ -102,18 +100,6 @@ export function TestnetLab() {
           <TrendingUp className="h-4 w-4" aria-hidden />
           Accrue +{bps / 100}% on both LSTs
         </Button>
-
-        <Button
-          variant="secondary"
-          className="w-full"
-          disabled={!isConnected}
-          busy={poke.busy}
-          busyLabel="Refreshing…"
-          onClick={() => poke.execute({ address: feed, abi: MockAggregatorAbi, functionName: "poke" })}
-        >
-          <RefreshCw className="h-4 w-4" aria-hidden />
-          Refresh Oracle Timestamp
-        </Button>
       </div>
 
       {nothingStaked && (
@@ -123,13 +109,11 @@ export function TestnetLab() {
       )}
 
       {accrue.error && <ErrorNote message={accrue.error} onDismiss={accrue.clearError} />}
-      {poke.error && <ErrorNote message={poke.error} onDismiss={poke.clearError} />}
       {accrue.justSucceeded && (
         <SuccessNote>
           Rewards accrued. NAV should now be climbing above the harvest floor.
         </SuccessNote>
       )}
-      {poke.justSucceeded && <SuccessNote>Oracle timestamp refreshed.</SuccessNote>}
 
       <p className="mt-6 border-t border-tawf-green/10 pt-4 text-xs text-tawf-muted">
         These contracts are testnet mocks and are never deployed to mainnet. The real Lido and

@@ -103,7 +103,7 @@
   }
 }
 
-/* Tabular figures keep rupiah columns from jittering as values update. */
+/* Tabular figures keep dollar columns from jittering as values update. */
 .tnum {
   font-variant-numeric: tabular-nums;
 }

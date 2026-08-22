@@ -15,22 +15,22 @@ contract SWRVaultTest is SWRBase {
 
     function test_DepositMintsReceiptOneToOneAndRoutesToBasket() public {
         _setSpread(0); // isolate routing from swap cost
-        uint256 amount = idr(1_000_000);
+        uint256 amount = usd(1_000_000);
 
         uint256 posId = _deposit(alice, amount, 0);
 
         assertEq(posId, 0, "first position");
-        assertEq(vault.balanceOf(alice), amount, "wqIDRX minted 1:1 with principal");
+        assertEq(vault.balanceOf(alice), amount, "wqUSDC minted 1:1 with principal");
         assertEq(vault.totalPrincipal(), amount, "principal tracked");
 
         // 40/30 to the LST legs, 30% left idle as the stable leg.
-        assertApproxEqRel(vault.ethToIdrx(wstAdapter.totalAssetsETH()), (amount * 40) / 100, 0.01e18, "wstETH leg");
-        assertApproxEqRel(vault.ethToIdrx(weETHAdapter.totalAssetsETH()), (amount * 30) / 100, 0.01e18, "weETH leg");
-        assertApproxEqRel(idrx.balanceOf(address(vault)), (amount * 30) / 100, 0.01e18, "idle stable leg");
+        assertApproxEqRel(vault.ethToUsdc(wstAdapter.totalAssetsETH()), (amount * 40) / 100, 0.01e18, "wstETH leg");
+        assertApproxEqRel(vault.ethToUsdc(weETHAdapter.totalAssetsETH()), (amount * 30) / 100, 0.01e18, "weETH leg");
+        assertApproxEqRel(usdc.balanceOf(address(vault)), (amount * 30) / 100, 0.01e18, "idle stable leg");
     }
 
     function test_DepositMintsAkadCertificateThatRenders() public {
-        uint256 amount = idr(1_000_000);
+        uint256 amount = usd(1_000_000);
         _deposit(alice, amount, 1);
 
         assertEq(akad.ownerOf(0), alice, "akad minted to the waqif");
@@ -47,12 +47,12 @@ contract SWRVaultTest is SWRBase {
     }
 
     function test_DepositUsesActualReceivedNotRequested() public {
-        // MockIDRX is not fee-on-transfer, so received == requested. This pins the invariant
+        // MockUSDC is not fee-on-transfer, so received == requested. This pins the invariant
         // that accounting follows the balance delta rather than the caller's claimed amount.
-        uint256 amount = idr(500_000);
-        uint256 before = idrx.balanceOf(address(vault));
+        uint256 amount = usd(500_000);
+        uint256 before = usdc.balanceOf(address(vault));
         _deposit(alice, amount, 0);
-        uint256 routed = idrx.balanceOf(address(vault)) - before;
+        uint256 routed = usdc.balanceOf(address(vault)) - before;
 
         assertEq(vault.totalPrincipal(), amount);
         assertLt(routed, amount, "most of the deposit left for the LST legs");
@@ -66,45 +66,45 @@ contract SWRVaultTest is SWRBase {
 
     function test_RevertWhen_DepositBelowMinimum() public {
         vm.startPrank(alice);
-        idrx.approve(address(vault), type(uint256).max);
-        vm.expectRevert(abi.encodeWithSelector(SWRVault.BelowMinimum.selector, 1, 10 ** IDRX_DECIMALS));
+        usdc.approve(address(vault), type(uint256).max);
+        vm.expectRevert(abi.encodeWithSelector(SWRVault.BelowMinimum.selector, 1, 10 ** USDC_DECIMALS));
         vault.deposit(1, 0);
         vm.stopPrank();
     }
 
     function test_RevertWhen_DepositWithInvalidTenorIndex() public {
         vm.startPrank(alice);
-        idrx.approve(address(vault), type(uint256).max);
+        usdc.approve(address(vault), type(uint256).max);
         vm.expectRevert(abi.encodeWithSelector(SWRVault.InvalidTenorIndex.selector, 3, 3));
-        vault.deposit(idr(1_000_000), 3);
+        vault.deposit(usd(1_000_000), 3);
         vm.stopPrank();
     }
 
     // =====================================================================
-    //                     wqIDRX is not transferable
+    //                     wqUSDC is not transferable
     // =====================================================================
 
     function test_RevertWhen_TransferringReceiptToken() public {
-        _deposit(alice, idr(1_000_000), 0);
+        _deposit(alice, usd(1_000_000), 0);
 
         vm.prank(alice);
-        vm.expectRevert(bytes("wqIDRX: non-transferable"));
-        vault.transfer(bob, idr(1));
+        vm.expectRevert(bytes("wqUSDC: non-transferable"));
+        vault.transfer(bob, usd(1));
     }
 
     function test_RevertWhen_TransferFromReceiptToken() public {
-        _deposit(alice, idr(1_000_000), 0);
+        _deposit(alice, usd(1_000_000), 0);
 
         vm.prank(alice);
         vault.approve(bob, type(uint256).max);
 
         vm.prank(bob);
-        vm.expectRevert(bytes("wqIDRX: non-transferable"));
-        vault.transferFrom(alice, bob, idr(1));
+        vm.expectRevert(bytes("wqUSDC: non-transferable"));
+        vault.transferFrom(alice, bob, usd(1));
     }
 
     function test_ReceiptDecimalsMatchDepositAsset() public view {
-        assertEq(vault.decimals(), IDRX_DECIMALS, "1:1 must be literal in base units");
+        assertEq(vault.decimals(), USDC_DECIMALS, "1:1 must be literal in base units");
     }
 
     // =====================================================================
@@ -112,7 +112,7 @@ contract SWRVaultTest is SWRBase {
     // =====================================================================
 
     function test_RevertWhen_UnstakeBeforeTenorElapsed() public {
-        uint256 posId = _deposit(alice, idr(1_000_000), 0);
+        uint256 posId = _deposit(alice, usd(1_000_000), 0);
 
         _warp(TENOR_SHORT - 1);
 
@@ -124,7 +124,7 @@ contract SWRVaultTest is SWRBase {
     }
 
     function test_RevertWhen_ClaimBeforeUnbondingElapsed() public {
-        uint256 posId = _deposit(alice, idr(1_000_000), 0);
+        uint256 posId = _deposit(alice, usd(1_000_000), 0);
 
         _warp(TENOR_SHORT);
         vm.prank(alice);
@@ -138,7 +138,7 @@ contract SWRVaultTest is SWRBase {
     }
 
     function test_RevertWhen_ClaimingAnActivePosition() public {
-        uint256 posId = _deposit(alice, idr(1_000_000), 0);
+        uint256 posId = _deposit(alice, usd(1_000_000), 0);
         _warp(TENOR_SHORT);
 
         vm.prank(alice);
@@ -147,7 +147,7 @@ contract SWRVaultTest is SWRBase {
     }
 
     function test_RevertWhen_RequestingUnstakeTwice() public {
-        uint256 posId = _deposit(alice, idr(1_000_000), 0);
+        uint256 posId = _deposit(alice, usd(1_000_000), 0);
         _warp(TENOR_SHORT);
 
         vm.startPrank(alice);
@@ -158,7 +158,7 @@ contract SWRVaultTest is SWRBase {
     }
 
     function test_TenorIsSnapshotted_OwnerCannotExtendALiveLock() public {
-        uint256 posId = _deposit(alice, idr(1_000_000), 0);
+        uint256 posId = _deposit(alice, usd(1_000_000), 0);
 
         // Owner lengthens every tenor option after the fact.
         uint256[] memory longer = new uint256[](1);
@@ -182,8 +182,8 @@ contract SWRVaultTest is SWRBase {
 
     function test_FullLifecycle_ReturnsFullPrincipal() public {
         _setSpread(0);
-        uint256 amount = idr(1_000_000);
-        uint256 balanceBefore = idrx.balanceOf(alice);
+        uint256 amount = usd(1_000_000);
+        uint256 balanceBefore = usdc.balanceOf(alice);
 
         uint256 posId = _deposit(alice, amount, 0);
         _accrueYield(500); // +5% on both legs
@@ -197,25 +197,27 @@ contract SWRVaultTest is SWRBase {
         uint256 payout = vault.claim(posId);
 
         assertEq(payout, amount, "100% of principal returned");
-        assertEq(idrx.balanceOf(alice), balanceBefore, "waqif made whole");
-        assertEq(vault.balanceOf(alice), 0, "wqIDRX burned");
+        assertEq(usdc.balanceOf(alice), balanceBefore, "waqif made whole");
+        assertEq(vault.balanceOf(alice), 0, "wqUSDC burned");
         assertEq(vault.totalPrincipal(), 0);
         assertEq(vault.reservedForClaims(), 0);
     }
 
     function test_PrincipalIsReservedAtUnstakeSoClaimCannotBeStarved() public {
         _setSpread(0);
-        uint256 amount = idr(1_000_000);
+        uint256 amount = usd(1_000_000);
         uint256 posId = _deposit(alice, amount, 0);
 
         _warp(TENOR_SHORT);
         vm.prank(alice);
         vault.requestUnstake(posId);
 
-        assertEq(vault.reservedForClaims(), amount, "principal earmarked up front");
+        // With 6-decimal USDC the unwind sheds at most a few base units of truncation dust, so
+        // "earmarked up front" is exact to within that dust, never off by a proportion.
+        assertApproxEqAbs(vault.reservedForClaims(), amount, 10, "principal earmarked up front");
 
-        // Reserved IDRX is excluded from working NAV, so a harvest cannot reach it.
-        assertLt(vault.totalNavIDRX(), amount, "reserved funds are outside harvestable NAV");
+        // Reserved USDC is excluded from working NAV, so a harvest cannot reach it.
+        assertLt(vault.totalNavUSDC(), amount, "reserved funds are outside harvestable NAV");
     }
 
     // =====================================================================
@@ -224,10 +226,10 @@ contract SWRVaultTest is SWRBase {
 
     function test_HarvestIsPermissionlessAndPaysTheCallerABounty() public {
         _setSpread(0);
-        _deposit(alice, idr(10_000_000), 2);
+        _deposit(alice, usd(10_000_000), 2);
         _accrueYield(3_000); // +30%, comfortably above the 10% buffer
 
-        uint256 nazirBefore = idrx.balanceOf(nazir);
+        uint256 nazirBefore = usdc.balanceOf(nazir);
 
         // `keeper` is nobody special: no role, no ownership.
         vm.prank(keeper);
@@ -235,8 +237,8 @@ contract SWRVaultTest is SWRBase {
 
         assertGt(toNazir, 0, "nazir received yield");
         assertGt(bounty, 0, "caller earned the bounty");
-        assertEq(idrx.balanceOf(keeper), bounty, "bounty actually paid");
-        assertEq(idrx.balanceOf(nazir) - nazirBefore, toNazir, "nazir actually paid");
+        assertEq(usdc.balanceOf(keeper), bounty, "bounty actually paid");
+        assertEq(usdc.balanceOf(nazir) - nazirBefore, toNazir, "nazir actually paid");
         assertEq(vault.totalYieldStripped(), toNazir);
 
         // Bounty is the configured slice of what was realised.
@@ -245,7 +247,7 @@ contract SWRVaultTest is SWRBase {
 
     function test_HarvestNeverStripsBelowPrincipalPlusBuffer() public {
         _setSpread(0);
-        uint256 amount = idr(10_000_000);
+        uint256 amount = usd(10_000_000);
         _deposit(alice, amount, 2);
         _accrueYield(5_000); // +50%
 
@@ -254,8 +256,8 @@ contract SWRVaultTest is SWRBase {
 
         // This is the core safety property: after any harvest the vault still fully backs
         // principal plus the cushion.
-        assertGe(vault.totalNavIDRX(), vault.harvestFloor(), "floor respected");
-        assertGe(vault.totalNavIDRX(), amount, "principal still fully backed");
+        assertGe(vault.totalNavUSDC(), vault.harvestFloor(), "floor respected");
+        assertGe(vault.totalNavUSDC(), amount, "principal still fully backed");
         assertGe(vault.solvencyRatioBps(), 10_000, "solvent");
     }
 
@@ -266,19 +268,19 @@ contract SWRVaultTest is SWRBase {
     ///         which is why the zero-spread invariant suite could not see it.
     function test_HarvestWithRealisticSpreadStillEndsAtOrAboveTheFloor() public {
         _setSpread(30); // 0.30%, a realistic DEX fee
-        _deposit(alice, idr(10_000_000), 2);
+        _deposit(alice, usd(10_000_000), 2);
         _accrueYield(3_000);
 
         vm.prank(keeper);
         vault.harvest();
 
-        assertGe(vault.totalNavIDRX(), vault.harvestFloor(), "harvest must not eat the buffer");
+        assertGe(vault.totalNavUSDC(), vault.harvestFloor(), "harvest must not eat the buffer");
         assertGe(vault.solvencyRatioBps(), 10_000, "still fully solvent");
     }
 
     function test_HarvestCostIsBorneByYieldNotByPrincipal() public {
         _setSpread(100); // 1%, an expensive unwind, to make the effect unmissable
-        uint256 amount = idr(10_000_000);
+        uint256 amount = usd(10_000_000);
         _deposit(alice, amount, 2);
         _accrueYield(5_000);
 
@@ -289,36 +291,36 @@ contract SWRVaultTest is SWRBase {
 
         // Expensive swaps shrink what the nazir receives. They must not shrink the backing.
         assertGt(toNazir + bounty, 0, "some yield still reached the nazir");
-        assertGe(vault.totalNavIDRX(), floorBefore, "principal + buffer intact after a costly unwind");
+        assertGe(vault.totalNavUSDC(), floorBefore, "principal + buffer intact after a costly unwind");
     }
 
     function test_RevertWhen_HarvestingWithNoSurplus() public {
         _setSpread(0);
-        _deposit(alice, idr(1_000_000), 0);
+        _deposit(alice, usd(1_000_000), 0);
         // No yield accrued, so NAV sits at principal, below principal + 10% buffer.
 
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(SWRVault.NoSurplus.selector, vault.totalNavIDRX(), vault.harvestFloor())
+            abi.encodeWithSelector(SWRVault.NoSurplus.selector, vault.totalNavUSDC(), vault.harvestFloor())
         );
         vault.harvest();
     }
 
     function test_RevertWhen_YieldExistsButHasNotClearedTheBuffer() public {
         _setSpread(0);
-        _deposit(alice, idr(10_000_000), 2);
+        _deposit(alice, usd(10_000_000), 2);
         _accrueYield(100); // +1% on 70% deployed = well under the 10% buffer
 
         vm.prank(keeper);
         vm.expectRevert();
         vault.harvest();
 
-        assertEq(idrx.balanceOf(nazir), 0, "buffer must be filled before the nazir is paid");
+        assertEq(usdc.balanceOf(nazir), 0, "buffer must be filled before the nazir is paid");
     }
 
     function test_HarvestDoesNotConsumeReservedClaims() public {
         _setSpread(0);
-        uint256 amount = idr(10_000_000);
+        uint256 amount = usd(10_000_000);
 
         uint256 alicePos = _deposit(alice, amount, 0);
         _deposit(bob, amount, 2);
@@ -346,14 +348,14 @@ contract SWRVaultTest is SWRBase {
     // =====================================================================
 
     function test_RevertWhen_OracleIsStale() public {
-        _deposit(alice, idr(1_000_000), 0);
+        _deposit(alice, usd(1_000_000), 0);
 
         // Freeze the feed and jump past the staleness window. A dead feed keeps returning its
         // last answer forever, and refusing to price against it is the entire defence.
         vm.warp(block.timestamp + 4 hours);
 
         vm.expectRevert();
-        vault.totalNavIDRX();
+        vault.totalNavUSDC();
     }
 
     function test_RevertWhen_OraclePriceIsNonPositive() public {
@@ -364,7 +366,7 @@ contract SWRVaultTest is SWRBase {
 
     function test_StaleOracleBlocksDepositsButNotClaims() public {
         _setSpread(0);
-        uint256 posId = _deposit(alice, idr(1_000_000), 0);
+        uint256 posId = _deposit(alice, usd(1_000_000), 0);
 
         _warp(TENOR_SHORT);
         vm.prank(alice);
@@ -377,7 +379,7 @@ contract SWRVaultTest is SWRBase {
         // not depend on the oracle, the keeper, or the team.
         vm.prank(alice);
         uint256 payout = vault.claim(posId);
-        assertEq(payout, idr(1_000_000), "exit works with a dead oracle");
+        assertApproxEqAbs(payout, usd(1_000_000), 10, "exit works with a dead oracle");
     }
 
     // =====================================================================
@@ -389,15 +391,15 @@ contract SWRVaultTest is SWRBase {
         _setSpread(500); // 5%
 
         vm.startPrank(alice);
-        idrx.approve(address(vault), type(uint256).max);
+        usdc.approve(address(vault), type(uint256).max);
         vm.expectRevert(); // MockSwapRouter.InsufficientOutput
-        vault.deposit(idr(1_000_000), 0);
+        vault.deposit(usd(1_000_000), 0);
         vm.stopPrank();
     }
 
     function test_SpreadIsChargedAndShowsUpAsAShortfallNotSilentLoss() public {
         _setSpread(30); // 0.30%, a realistic DEX fee
-        uint256 amount = idr(1_000_000);
+        uint256 amount = usd(1_000_000);
         uint256 posId = _deposit(alice, amount, 0);
 
         _warp(TENOR_SHORT);
@@ -419,7 +421,7 @@ contract SWRVaultTest is SWRBase {
 
     function test_YieldCoversRoundTripSpreadOverAFullTenor() public {
         _setSpread(30);
-        uint256 amount = idr(1_000_000);
+        uint256 amount = usd(1_000_000);
         uint256 posId = _deposit(alice, amount, 2);
 
         _accrueYield(300); // +3%, comfortably more than the 0.6% round trip
@@ -442,11 +444,11 @@ contract SWRVaultTest is SWRBase {
 
     function test_EthCrashProducesRecordedDeficitAndTopUpClosesIt() public {
         _setSpread(0);
-        uint256 amount = idr(10_000_000);
+        uint256 amount = usd(10_000_000);
         uint256 posId = _deposit(alice, amount, 0);
 
-        // ETH halves against the rupiah. This is the FX risk the design cannot engineer away.
-        _setPrice(ETH_IDRX_PRICE / 2);
+        // ETH halves against the dollar. This is the FX risk the design cannot engineer away.
+        _setPrice(ETH_USD_PRICE / 2);
 
         _warp(TENOR_SHORT);
         vm.prank(alice);
@@ -457,8 +459,8 @@ contract SWRVaultTest is SWRBase {
 
         // A takaful reserve, or anyone at all, can make the waqif whole.
         uint256 shortfall = vault.deficit();
-        idrx.mint(address(this), shortfall);
-        idrx.approve(address(vault), shortfall);
+        usdc.mint(address(this), shortfall);
+        usdc.approve(address(vault), shortfall);
         vault.topUp(shortfall);
 
         assertEq(vault.deficit(), 0, "deficit closed");
@@ -488,7 +490,7 @@ contract SWRVaultTest is SWRBase {
     function test_RevertWhen_NonVaultMintsAkad() public {
         vm.prank(alice);
         vm.expectRevert(AkadCertificateNFT.OnlyVault.selector);
-        akad.mintAkad(alice, idr(1), 1 days, "FAKE");
+        akad.mintAkad(alice, usd(1), 1 days, "FAKE");
     }
 
     function test_RevertWhen_AkadVaultRepointed() public {
@@ -550,8 +552,8 @@ contract SWRVaultTest is SWRBase {
 
     function test_TwoWaqifWithDifferentTenorsSettleIndependently() public {
         _setSpread(0);
-        uint256 aliceAmount = idr(2_000_000);
-        uint256 bobAmount = idr(5_000_000);
+        uint256 aliceAmount = usd(2_000_000);
+        uint256 bobAmount = usd(5_000_000);
 
         uint256 aliceP = _deposit(alice, aliceAmount, 0); // short
         uint256 bobP = _deposit(bob, bobAmount, 2); // long
@@ -569,7 +571,7 @@ contract SWRVaultTest is SWRBase {
         vault.requestUnstake(aliceP);
         _warp(UNBONDING);
         vm.prank(alice);
-        assertEq(vault.claim(aliceP), aliceAmount);
+        assertApproxEqAbs(vault.claim(aliceP), aliceAmount, 10);
 
         assertEq(vault.totalPrincipal(), bobAmount, "only bob's principal remains");
 
@@ -578,7 +580,7 @@ contract SWRVaultTest is SWRBase {
         vault.requestUnstake(bobP);
         _warp(UNBONDING);
         vm.prank(bob);
-        assertEq(vault.claim(bobP), bobAmount);
+        assertApproxEqAbs(vault.claim(bobP), bobAmount, 10);
 
         assertEq(vault.totalPrincipal(), 0);
         assertEq(vault.totalSupply(), 0, "all receipts burned");

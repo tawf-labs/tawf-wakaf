@@ -11,7 +11,7 @@ import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 ///
 /// Ported from the `skripsi-staking` thesis project with two substantive changes:
 ///
-///  1. Amounts are IDRX base units at an arbitrary decimals value, not 18-decimal wei.
+///  1. Amounts are USDC base units at an arbitrary decimals value, not 18-decimal wei.
 ///     The original hardcoded `/1e18`, which on a 2-decimal token would render every
 ///     deposit as "0.0000".
 ///  2. Minting is restricted to the vault. In the original, the akad's `period` was
@@ -91,7 +91,7 @@ contract AkadCertificateNFT is ERC721, Ownable {
     // --- rendering --------------------------------------------------------
 
     /// @dev Decimal-aware fixed-point rendering. Two fractional digits is right for a
-    ///      rupiah-denominated asset, and a token with fewer decimals is left-padded.
+    ///      USD-denominated asset, and a token with fewer decimals is left-padded.
     function _formatAmount(uint256 amount) internal view returns (string memory) {
         uint256 scale = 10 ** assetDecimals;
         uint256 whole = amount / scale;
@@ -104,7 +104,7 @@ contract AkadCertificateNFT is ERC721, Ownable {
         string memory fracStr = shown.toString();
         if (shown < 10) fracStr = string.concat("0", fracStr);
         // Decimal point, not the Indonesian comma. Every other string on this certificate is
-        // English, and "1,50 IDRX" reads as one-thousand-five-hundred to that audience.
+        // English, and "1,50 USDC" reads as one-thousand-five-hundred to that audience.
         return string.concat(whole.toString(), ".", fracStr);
     }
 
