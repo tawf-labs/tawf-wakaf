@@ -38,32 +38,83 @@ const MESSAGES: Record<string, string> = {
   OwnableUnauthorizedAccount: "Only the contract owner may do this.",
 };
 
-export function parseContractError(err: unknown): string {
+export interface ParsedError {
+  code: string;
+  message: string;
+  raw?: string;
+}
+
+export function parseStructuredContractError(err: unknown): ParsedError {
   if (err instanceof BaseError) {
     if (err.walk((e) => e instanceof UserRejectedRequestError)) {
-      return "Transaction was cancelled in wallet.";
+      return {
+        code: "USER_REJECTED",
+        message: "Transaction was cancelled in wallet.",
+        raw: err.shortMessage || "User rejected the request",
+      };
     }
 
     const reverted = err.walk((e) => e instanceof ContractFunctionRevertedError);
     if (reverted instanceof ContractFunctionRevertedError) {
       const name = reverted.data?.errorName;
-      if (name && MESSAGES[name]) return MESSAGES[name];
-      if (reverted.reason) {
-        // Plain `require` strings, e.g. the non-transferable receipt guard.
-        if (reverted.reason.includes("non-transferable")) {
-          return "wqIDRX is non-transferable. It is bound to your waqf position.";
-        }
-        return reverted.reason;
+      if (name) {
+        return {
+          code: name,
+          message: MESSAGES[name] || `Transaction rejected by contract (${name}).`,
+          raw: reverted.message,
+        };
       }
-      if (name) return `Transaction rejected by contract (${name}).`;
+      if (reverted.reason) {
+        if (reverted.reason.includes("non-transferable")) {
+          return {
+            code: "NON_TRANSFERABLE",
+            message: "wqIDRX is non-transferable. It is bound to your waqf position.",
+            raw: reverted.reason,
+          };
+        }
+        return {
+          code: "REVERT_REASON",
+          message: reverted.reason,
+          raw: reverted.message,
+        };
+      }
     }
 
-    if (err.shortMessage) return err.shortMessage;
+    return {
+      code: "RPC_ERROR",
+      message: err.shortMessage || "Transaction execution failed on-chain.",
+      raw: err.message,
+    };
   }
 
   if (err instanceof Error && err.message) {
-    return err.message.length > 160 ? `${err.message.slice(0, 160)}…` : err.message;
+    const rawMsg = err.message;
+    // Check if error contains specific string patterns
+    for (const [code, msg] of Object.entries(MESSAGES)) {
+      if (rawMsg.includes(code)) {
+        return {
+          code,
+          message: msg,
+          raw: rawMsg,
+        };
+      }
+    }
+
+    return {
+      code: "EXECUTION_ERROR",
+      message: rawMsg.length > 160 ? `${rawMsg.slice(0, 160)}…` : rawMsg,
+      raw: rawMsg,
+    };
   }
 
-  return "An unknown error occurred.";
+  return {
+    code: "UNKNOWN_ERROR",
+    message: "An unknown error occurred.",
+    raw: String(err),
+  };
+}
+
+export function parseContractError(err: unknown): string {
+  const parsed = parseStructuredContractError(err);
+  return parsed.message;
 }

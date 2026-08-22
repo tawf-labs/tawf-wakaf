@@ -15,8 +15,14 @@ export function HarvestPanel() {
   const stats = useVaultStats();
   const adapters = useAdapters(Number(stats.adapterCount ?? 0n));
 
-  const harvest = useOnchainAction(() => stats.refetch());
-  const poke = useOnchainAction(() => stats.refetch());
+  const harvest = useOnchainAction(() => stats.refetch(), {
+    actionName: "Harvest Yield",
+    successMessage: "Yield harvested and sent to Nazir successfully.",
+  });
+  const poke = useOnchainAction(() => stats.refetch(), {
+    actionName: "Refresh Oracle",
+    successMessage: "Oracle timestamp refreshed successfully.",
+  });
 
   const surplus =
     stats.nav !== undefined && stats.harvestFloor !== undefined && stats.nav > stats.harvestFloor

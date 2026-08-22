@@ -32,9 +32,18 @@ export function DepositCard() {
 
   // Each action gets its own hook instance. A shared loading flag is how buttons end up showing
   // the wrong label and accepting a second click mid-flight.
-  const faucet = useOnchainAction(refresh);
-  const approve = useOnchainAction(refresh);
-  const deposit = useOnchainAction(refresh);
+  const faucet = useOnchainAction(refresh, {
+    actionName: "Mint Test IDRX",
+    successMessage: "100,000 IDRX faucet transferred to your wallet.",
+  });
+  const approve = useOnchainAction(refresh, {
+    actionName: "Approve IDRX",
+    successMessage: "IDRX allowance approved for SWR Vault.",
+  });
+  const deposit = useOnchainAction(refresh, {
+    actionName: perpetual ? "Perpetual Waqf Deposit" : "Term Waqf Deposit",
+    successMessage: "Waqf deposit confirmed & Akad NFT Certificate minted to your wallet.",
+  });
 
   const decimals = stats.decimals;
   const amount = useMemo(() => parseRp(amountInput, decimals), [amountInput, decimals]);

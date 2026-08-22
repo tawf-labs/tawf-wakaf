@@ -29,8 +29,14 @@ export function TestnetLab() {
   const stats = useVaultStats();
   const [bps, setBps] = useState<number>(500);
 
-  const accrue = useOnchainAction(() => stats.refetch());
-  const poke = useOnchainAction(() => stats.refetch());
+  const accrue = useOnchainAction(() => stats.refetch(), {
+    actionName: "Simulate Yield Accrual",
+    successMessage: "Mock staking yield successfully accrued.",
+  });
+  const poke = useOnchainAction(() => stats.refetch(), {
+    actionName: "Refresh Oracle",
+    successMessage: "Mock oracle price timestamp refreshed.",
+  });
 
   // Growing a pool of zero yields zero, and the mock reverts on a zero reward. Nothing is staked
   // until the first deposit routes ETH through the adapters.

@@ -10,6 +10,7 @@ import "./styles/index.css";
 
 import App from "./App";
 import { wagmiConfig } from "./lib/config";
+import { ToastProvider } from "./components/ToastProvider";
 
 const queryClient = new QueryClient();
 
@@ -25,9 +26,11 @@ createRoot(document.getElementById("root")!).render(
             fontStack: "system",
           })}
         >
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <ToastProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </ToastProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

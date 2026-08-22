@@ -34,8 +34,14 @@ function PositionRow({
   onChanged: () => void;
 }) {
   const now = useNow();
-  const unstake = useOnchainAction(onChanged);
-  const claim = useOnchainAction(onChanged);
+  const unstake = useOnchainAction(onChanged, {
+    actionName: "Request Unstake",
+    successMessage: "Unstake requested. Unbonding period started.",
+  });
+  const claim = useOnchainAction(onChanged, {
+    actionName: "Claim Principal",
+    successMessage: "Principal IDRX returned to your wallet.",
+  });
   const [showAkad, setShowAkad] = useState(false);
 
   const maturesAt = Number(position.depositedAt) + Number(position.tenor);

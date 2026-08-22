@@ -1,43 +1,72 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import type { Hash } from "viem";
-import { parseContractError } from "./errors";
+import { parseStructuredContractError, type ParsedError } from "./errors";
+import { useToast } from "./useToast";
 
 type Phase = "idle" | "submitting" | "confirming" | "cooldown";
+
+export interface OnchainActionOptions {
+  actionName?: string;
+  successMessage?: string;
+}
 
 /// One button, one instance of this hook. Never a shared `isLoading` across actions, which is
 /// what produces buttons showing the wrong label and users double-submitting.
 ///
-/// The subtle part is the two gaps that raw wagmi leaves open:
-///
-///   1. wallet -> hash: `isPending` goes false the moment the wallet returns a hash, which is
-///      BEFORE the chain has confirmed anything. Left alone, the button re-enables mid-flight.
-///   2. confirmation -> cache: even after the receipt lands, cached reads (allowance, balances)
-///      are still stale for a moment.
-///
-/// `submitting` covers the first, `cooldown` the second. Both keep the button disabled, and the
-/// `finally` is mandatory, because without it a rejected transaction locks the button forever.
-export function useOnchainAction(onConfirmed?: () => void) {
+/// Automatically notifies the user via ToastContext with:
+/// - Pending status + Tx Hash link
+/// - Success status + Clickable Tx Hash link & explorer shortcut
+/// - Error status + Specific Error Code and human-readable explanation
+export function useOnchainAction(
+  onConfirmed?: () => void,
+  options: OnchainActionOptions = {}
+) {
   const { writeContractAsync } = useWriteContract();
   const client = usePublicClient();
+  const { addToast, updateToast, showError } = useToast();
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [hash, setHash] = useState<Hash | undefined>();
   const [error, setError] = useState<string | null>(null);
+  const [parsedError, setParsedError] = useState<ParsedError | null>(null);
   const cooldownTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const activeToastId = useRef<string | undefined>(undefined);
+
+  const actionName = options.actionName || "Transaction";
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   useEffect(() => {
-    if (isConfirming) setPhase("confirming");
-  }, [isConfirming]);
+    if (isConfirming) {
+      setPhase("confirming");
+      if (activeToastId.current && hash) {
+        updateToast(activeToastId.current, {
+          type: "pending",
+          title: `${actionName} in Progress`,
+          message: "Confirming block on-chain…",
+          txHash: hash,
+        });
+      }
+    }
+  }, [isConfirming, hash, actionName, updateToast]);
 
   useEffect(() => {
     if (!isSuccess || !hash) return;
 
-    // Only refetch once the receipt is in hand. Refetching on submission reads pre-transaction
-    // state and shows the user a value that is about to change.
     setPhase("cooldown");
+    if (activeToastId.current) {
+      updateToast(activeToastId.current, {
+        type: "success",
+        title: `${actionName} Successful`,
+        message: options.successMessage || "Transaction has been confirmed on-chain.",
+        txHash: hash,
+        autoClose: true,
+        durationMs: 6000,
+      });
+      activeToastId.current = undefined;
+    }
+
     onConfirmed?.();
 
     cooldownTimer.current = setTimeout(() => {
@@ -52,58 +81,121 @@ export function useOnchainAction(onConfirmed?: () => void) {
   useEffect(() => () => clearTimeout(cooldownTimer.current), []);
 
   const execute = useCallback(
-    async (args: Parameters<typeof writeContractAsync>[0]) => {
+    async (
+      args: Parameters<typeof writeContractAsync>[0],
+      customName?: string
+    ) => {
       setError(null);
+      setParsedError(null);
       setPhase("submitting");
+      const name = customName || actionName;
+
       try {
         const h = await writeContractAsync(args);
         setHash(h);
+
+        // Show pending toast immediately with the tx hash
+        const toastId = addToast({
+          type: "pending",
+          title: `${name} Submitted`,
+          message: "Transaction sent to network, waiting for receipt…",
+          txHash: h,
+        });
+        activeToastId.current = toastId;
+
         return h;
       } catch (e) {
-        setError(parseContractError(e));
+        const pErr = parseStructuredContractError(e);
+        setError(pErr.message);
+        setParsedError(pErr);
         setPhase("idle");
+
+        if (activeToastId.current) {
+          updateToast(activeToastId.current, {
+            type: "error",
+            title: `${name} Failed`,
+            errorCode: pErr.code,
+            message: pErr.message,
+            autoClose: true,
+          });
+          activeToastId.current = undefined;
+        } else {
+          showError(`${name} Failed`, pErr.code, pErr.message);
+        }
+
         return undefined;
       }
     },
-    [writeContractAsync],
+    [writeContractAsync, actionName, addToast, updateToast, showError],
   );
 
-  /// Several writes that only make sense together, run one after another under a single button.
-  ///
-  /// Each receipt is awaited before the next write is sent: fire them concurrently and the second
-  /// is built against state the node has not accepted yet, which on a public RPC surfaces as a
-  /// nonce error rather than anything legible. Only the last hash feeds the confirmation effect,
-  /// by which point it has already landed, so `useWaitForTransactionReceipt` resolves from cache
-  /// and the cooldown behaves exactly as it does for a single write.
   const executeMany = useCallback(
-    async (list: Parameters<typeof writeContractAsync>[0][]) => {
+    async (
+      list: Parameters<typeof writeContractAsync>[0][],
+      customName?: string
+    ) => {
       setError(null);
+      setParsedError(null);
       setPhase("submitting");
+      const name = customName || actionName;
       let last: Hash | undefined;
+
       try {
-        for (const args of list) {
+        for (let i = 0; i < list.length; i++) {
+          const args = list[i];
           last = await writeContractAsync(args);
-          if (client) await client.waitForTransactionReceipt({ hash: last });
+
+          const toastId = addToast({
+            id: activeToastId.current,
+            type: "pending",
+            title: list.length > 1 ? `${name} (Step ${i + 1}/${list.length})` : `${name} Submitted`,
+            message: "Awaiting block confirmation…",
+            txHash: last,
+          });
+          activeToastId.current = toastId;
+
+          if (client) {
+            await client.waitForTransactionReceipt({ hash: last });
+          }
         }
         setHash(last);
         return last;
       } catch (e) {
-        setError(parseContractError(e));
+        const pErr = parseStructuredContractError(e);
+        setError(pErr.message);
+        setParsedError(pErr);
         setPhase("idle");
+
+        if (activeToastId.current) {
+          updateToast(activeToastId.current, {
+            type: "error",
+            title: `${name} Failed`,
+            errorCode: pErr.code,
+            message: pErr.message,
+            autoClose: true,
+          });
+          activeToastId.current = undefined;
+        } else {
+          showError(`${name} Failed`, pErr.code, pErr.message);
+        }
+
         return undefined;
       }
     },
-    [writeContractAsync, client],
+    [writeContractAsync, actionName, client, addToast, updateToast, showError],
   );
 
   return {
     execute,
     executeMany,
     error,
-    clearError: () => setError(null),
+    parsedError,
+    clearError: () => {
+      setError(null);
+      setParsedError(null);
+    },
     hash,
     phase,
-    /// The single flag every button should bind `disabled` to.
     busy: phase !== "idle",
     isSubmitting: phase === "submitting",
     isConfirming: phase === "confirming",
