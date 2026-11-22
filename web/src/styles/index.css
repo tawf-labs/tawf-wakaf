@@ -29,6 +29,46 @@
 
   --radius-card: 1rem; /* 16px */
   --radius-box: 1.5rem; /* 24px */
+
+  /* The foundation palette, declared here so Tailwind can generate the utilities for it.
+     Nothing outside the landing and the shared chrome references these names, so the app pages
+     are untouched; the values themselves are applied in the [data-landing] block below. */
+  --color-tawf-line: #ced8d1;
+  --color-tawf-accent: #1f6b54;
+  --color-tawf-accent-deep: #175545;
+  --color-paper: #fbfcfa;
+  --color-glaze: #dce8e1;
+  --color-mint: #d3ecdd;
+  --color-honey: #8a6414;
+  --color-butter: #f2e3b5;
+}
+
+/* The foundation look, scoped to two things: the landing page (wrapped in `data-landing`) and
+   the shared header and footer that frame it on every route (`data-chrome`). The existing
+   token names are re-pointed at the foundation values, so `text-tawf-green` inside the landing
+   means ink, `bg-tawf-sand` means stone, and `font-serif` means Inter. App pages never enter
+   these scopes and keep the palette declared in @theme above. Flat colours only. */
+[data-landing],
+[data-chrome] {
+  --color-tawf-green: #10261f; /* ink: headings, body, dark bands */
+  --color-tawf-green-light: #175545; /* accent deep: hover */
+  --color-tawf-ink: #10261f;
+  --color-tawf-sand: #eef1ec; /* stone: page ground */
+  --color-tawf-muted: #4a5f57;
+  --color-tawf-gold: #8a6414; /* honey: the one warm accent, light grounds only */
+
+  /* Headings are Inter here. The serif face stays loaded and stays in use on the app pages. */
+  --font-serif: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+
+  /* New palette names. */
+  --color-tawf-line: #ced8d1;
+  --color-tawf-accent: #1f6b54;
+  --color-tawf-accent-deep: #175545;
+  --color-paper: #fbfcfa;
+  --color-glaze: #dce8e1;
+  --color-mint: #d3ecdd;
+  --color-honey: #8a6414;
+  --color-butter: #f2e3b5;
 }
 
 @layer base {
@@ -48,6 +88,13 @@
     font-family: var(--font-serif);
     color: var(--color-tawf-green);
     font-weight: 500;
+  }
+
+  /* Landing headings: Inter (inherited from the scoped --font-serif) at a tight tracking, which
+     is the foundation's typographic voice. Utilities still win over this, so a section that
+     needs its own measure can set `tracking-*` itself. */
+  [data-landing] :is(h1, h2, h3, h4, h5, h6) {
+    letter-spacing: -0.03em;
   }
 
   body {
@@ -101,7 +148,113 @@
   .card-sand {
     @apply rounded-2xl border border-tawf-green/10 bg-tawf-sand/30 p-8;
   }
+
+  /* --- The same component classes, restyled inside the landing and the chrome --- */
+
+  /* Section eyebrow: accent green, medium weight, tracked. No mono face is self-hosted, so the
+     label is set in Inter rather than pulling one from a CDN. */
+  [data-landing] .label-caps,
+  [data-chrome] .label-caps {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-tawf-accent);
+  }
+
+  [data-chrome] .nav-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-tawf-ink) 70%, transparent);
+    transition: color 0.2s ease;
+  }
+
+  [data-chrome] .nav-link:hover {
+    color: var(--color-tawf-accent);
+  }
+
+  /* Buttons: h-12, rounded-xl, accent fill with a white label, or paper with a hairline border.
+     Both keep the 44px floor and the disabled state the base class defines. */
+  [data-landing] .btn-primary,
+  [data-chrome] .btn-primary {
+    height: 3rem;
+    min-height: 44px;
+    padding: 0 1.5rem;
+    border-radius: 0.75rem;
+    background-color: var(--color-tawf-accent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: normal;
+    text-transform: none;
+    box-shadow: 0 1px 2px rgba(31, 107, 84, 0.25);
+    transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  [data-landing] .btn-primary:hover:not(:disabled),
+  [data-chrome] .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-tawf-accent-deep);
+    box-shadow: 0 4px 12px rgba(31, 107, 84, 0.28);
+  }
+
+  [data-landing] .btn-secondary,
+  [data-chrome] .btn-secondary {
+    height: 3rem;
+    min-height: 44px;
+    padding: 0 1.5rem;
+    border-radius: 0.75rem;
+    background-color: var(--color-paper);
+    border-color: var(--color-tawf-line);
+    color: var(--color-tawf-ink);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: normal;
+    text-transform: none;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  [data-landing] .btn-secondary:hover:not(:disabled),
+  [data-chrome] .btn-secondary:hover:not(:disabled) {
+    border-color: var(--color-tawf-ink);
+    background-color: var(--color-paper);
+    color: var(--color-tawf-ink);
+  }
+
+  /* Cards: paper on a light ground, glaze for the second one, hairline border either way. */
+  [data-landing] .card,
+  [data-landing] .card-sand {
+    border-radius: 1rem;
+    border-color: var(--color-tawf-line);
+  }
+
+  [data-landing] .card {
+    background-color: var(--color-paper);
+  }
+
+  [data-landing] .card-sand {
+    background-color: var(--color-glaze);
+  }
 }
+
+/* Dark bands: honey and the accent green do not have the contrast for ink, so labels and focus
+   rings inside a dark scope take the butter tint instead. */
+.on-dark .label-caps {
+  color: var(--color-butter);
+}
+
+.on-dark :focus-visible {
+  outline-color: var(--color-butter);
+}
+
 
 /* Tabular figures keep dollar columns from jittering as values update. */
 .tnum {

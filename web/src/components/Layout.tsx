@@ -37,7 +37,7 @@ function Wordmark() {
   return (
     <Link to="/" className="flex items-center gap-3">
       <img src={tawfLogo} alt="Tawf" className="h-20 w-auto invert" />
-      <span className="hidden border-l border-tawf-green/15 pl-3 text-xs uppercase tracking-[0.2em] text-tawf-muted sm:inline">
+      <span className="hidden border-l border-tawf-line pl-3 text-xs font-medium uppercase tracking-[0.18em] text-tawf-muted sm:inline">
         Cash Waqf
       </span>
     </Link>
@@ -53,7 +53,12 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-tawf-sand">
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-tawf-green/10 bg-tawf-sand/90 backdrop-blur">
+      {/* `data-chrome` is what puts the header and the footer in the foundation palette along
+          with the landing page; the rest of the app keeps the tokens it was built with. */}
+      <header
+        data-chrome
+        className="fixed inset-x-0 top-0 z-40 border-b border-tawf-line bg-tawf-sand/90 backdrop-blur"
+      >
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
           <Wordmark />
 
@@ -64,7 +69,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   key={l.to}
                   to={l.to}
                   className={({ isActive }) =>
-                    `nav-link ${isActive ? "text-tawf-green" : ""}`
+                    `nav-link ${isActive ? "text-tawf-accent" : ""}`
                   }
                 >
                   {l.label}
@@ -88,11 +93,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 accountStatus={{ smallScreen: "avatar", largeScreen: "address" }}
               />
             ) : (
-              <Link
-                to="/earn"
-                className="hidden items-center gap-2 rounded-full bg-tawf-green px-6 py-2.5 text-sm uppercase tracking-widest text-tawf-sand transition-colors hover:bg-tawf-green-light sm:inline-flex"
-                style={{ minHeight: 44 }}
-              >
+              <Link to="/earn" className="btn-primary hidden sm:inline-flex">
                 Launch App
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
@@ -101,7 +102,7 @@ export function Layout({ children }: { children: ReactNode }) {
               onClick={() => setMenuOpen((v) => !v)}
               aria-label={menuOpen ? "Close menu" : "Open menu"}
               aria-expanded={menuOpen}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-tawf-ink/60 transition-colors hover:text-tawf-green md:hidden"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-tawf-ink/60 transition-colors hover:text-tawf-accent md:hidden"
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -109,7 +110,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
 
         {menuOpen && (
-          <nav className="border-t border-tawf-green/10 bg-tawf-sand px-6 py-4 md:hidden">
+          <nav className="border-t border-tawf-line bg-tawf-sand px-6 py-4 md:hidden">
             <ul className="space-y-1">
               {APP_NAV.map((l) => (
                 <li key={l.to}>
@@ -117,10 +118,10 @@ export function Layout({ children }: { children: ReactNode }) {
                     to={l.to}
                     onClick={() => setMenuOpen(false)}
                     className={({ isActive }) =>
-                      `block rounded-2xl px-4 py-3 text-sm uppercase tracking-widest transition-colors ${
+                      `flex min-h-11 items-center rounded-xl px-4 text-sm font-medium uppercase tracking-[0.14em] transition-colors ${
                         isActive
-                          ? "bg-tawf-green text-tawf-sand"
-                          : "text-tawf-ink/70 hover:text-tawf-green"
+                          ? "bg-tawf-accent text-white"
+                          : "text-tawf-ink/70 hover:text-tawf-accent"
                       }`
                     }
                   >
@@ -132,7 +133,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 <Link
                   to="/"
                   onClick={() => setMenuOpen(false)}
-                  className="block rounded-2xl px-4 py-3 text-sm uppercase tracking-widest text-tawf-ink/70 hover:text-tawf-green"
+                  className="flex min-h-11 items-center rounded-xl px-4 text-sm font-medium uppercase tracking-[0.14em] text-tawf-ink/70 transition-colors hover:text-tawf-accent"
                 >
                   Home
                 </Link>
@@ -147,13 +148,13 @@ export function Layout({ children }: { children: ReactNode }) {
         <main>{children}</main>
       </div>
 
-      <footer className="bg-tawf-ink py-16 text-white/60">
+      <footer data-chrome className="on-dark bg-tawf-ink py-16 text-white/60">
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
             <div>
               {/* No `invert` here: the mark is already white, and the footer is already dark. */}
               <img src={tawfLogo} alt="Tawf" className="-ml-2 h-20 w-auto" />
-              <p className="font-serif text-lg text-white/60">Cash Waqf</p>
+              <p className="text-lg font-medium text-white">Cash Waqf</p>
               {/* This footer used to carry the Foundation's own description, which belongs on
                   tawf.foundation and not on one of its programs. */}
               <p className="mt-3 text-sm">
@@ -162,7 +163,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </p>
               <a
                 href="https://tawf.foundation/waqf"
-                className="mt-3 inline-block text-sm transition-colors hover:text-tawf-gold"
+                className="mt-1 inline-flex min-h-11 items-center text-sm transition-colors hover:text-butter"
               >
                 A program of Tawf Islamic Foundation ↗
               </a>
@@ -170,10 +171,13 @@ export function Layout({ children }: { children: ReactNode }) {
 
             <div>
               <p className="label-caps">Protocol</p>
-              <ul className="mt-4 space-y-2 text-sm">
+              <ul className="mt-3 text-sm">
                 {APP_NAV.map((l) => (
                   <li key={l.to}>
-                    <Link to={l.to} className="transition-colors hover:text-tawf-gold">
+                    <Link
+                      to={l.to}
+                      className="inline-flex min-h-11 items-center transition-colors hover:text-butter"
+                    >
                       {l.label}
                     </Link>
                   </li>
@@ -183,14 +187,20 @@ export function Layout({ children }: { children: ReactNode }) {
 
             <div>
               <p className="label-caps">Transparency</p>
-              <ul className="mt-4 space-y-2 text-sm">
+              <ul className="mt-3 text-sm">
                 <li>
-                  <Link to="/#risks" className="transition-colors hover:text-tawf-gold">
+                  <Link
+                    to="/#risks"
+                    className="inline-flex min-h-11 items-center transition-colors hover:text-butter"
+                  >
                     Risk Notes
                   </Link>
                 </li>
                 <li>
-                  <Link to="/#how-it-works" className="transition-colors hover:text-tawf-gold">
+                  <Link
+                    to="/#how-it-works"
+                    className="inline-flex min-h-11 items-center transition-colors hover:text-butter"
+                  >
                     How It Works
                   </Link>
                 </li>
@@ -199,7 +209,7 @@ export function Layout({ children }: { children: ReactNode }) {
                     href="https://github.com/tawf-labs/tawf-wakaf"
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="transition-colors hover:text-tawf-gold"
+                    className="inline-flex min-h-11 items-center transition-colors hover:text-butter"
                   >
                     Source Code
                   </a>
