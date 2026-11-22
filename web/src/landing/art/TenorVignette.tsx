@@ -48,7 +48,7 @@ export default function TenorVignette({ className = '' }: { className?: string }
       viewport={VIEW}
     >
       <motion.ellipse variants={fade(0.1, 0.6)} cx={floor(L / 2, WC)[0]} cy={floor(L / 2, WC)[1] + 10} rx={96} ry={24} fill="rgba(16,38,31,.07)" />
-      <IsoBox x={base[0]} y={base[1] + PH} a={L} b={W} h={PH} fills={['#B8C7BE', '#9FB3A8', PAL.glaze]} variants={drop(0, 0.15, 0.16, -36)} />
+      <IsoBox x={base[0]} y={base[1] + PH} a={L} b={W} h={PH} fills={['#9FB3A8', '#9FB3A8', PAL.glaze]} variants={drop(0, 0.15, 0.16, -36)} />
 
       <motion.path variants={draw(0.8, 1.2)} d={LINE} stroke={PAL.line} strokeWidth="3" strokeLinecap="round" fill="none" />
       <FlowLine d={LINE} stroke={PAL.honey} strokeWidth={2} dash="1.2 3.3" duration={5} startAfter={2} opacity={0.6} />

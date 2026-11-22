@@ -37,7 +37,7 @@ export default function PerpetualVignette({ className = '' }: { className?: stri
       viewport={VIEW}
     >
       <motion.ellipse variants={fade(0.1, 0.6)} cx={CX} cy={FY - 40} rx={112} ry={30} fill="rgba(16,38,31,.07)" />
-      <IsoBox x={CX} y={FY} a={SIDE} b={SIDE} h={PH} fills={['#B8C7BE', '#9FB3A8', PAL.glaze]} variants={drop(0, 0.15, 0.16, -40)} />
+      <IsoBox x={CX} y={FY} a={SIDE} b={SIDE} h={PH} fills={['#9FB3A8', '#9FB3A8', PAL.glaze]} variants={drop(0, 0.15, 0.16, -40)} />
 
       <motion.path variants={draw(0.8, 1.4)} d={LOOP} stroke={PAL.line} strokeWidth="3" fill="none" />
       <FlowLine d={LOOP} stroke={PAL.accent} strokeWidth={2} dash="1.2 3.3" duration={5} startAfter={2.2} opacity={0.7} />

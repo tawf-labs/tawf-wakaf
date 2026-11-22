@@ -11,7 +11,7 @@ export default function RiskSection() {
   return (
     <section
       id="risks"
-      className="on-dark scroll-mt-24 bg-tawf-ink py-16 text-white/70 md:py-24"
+      className="on-dark scroll-mt-24 bg-tawf-ink py-16 text-white/80 md:py-24"
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-3xl">
@@ -42,7 +42,7 @@ export default function RiskSection() {
               of the akad, not a defect: you are giving the capital away. Choose the fixed tenor if
               you may want the money back.
             </p>
-            <p className="text-white/50">
+            <p className="text-white/80">
               This is a property of the asset choice, not a bug that can be fixed in Solidity.
               Additionally: this contract has not been third-party audited, runs on testnet,
               and all tokens within it have no value.

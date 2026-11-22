@@ -33,11 +33,11 @@
   /* The foundation palette, declared here so Tailwind can generate the utilities for it.
      Nothing outside the landing and the shared chrome references these names, so the app pages
      are untouched; the values themselves are applied in the [data-landing] block below. */
-  --color-tawf-line: #ced8d1;
+  --color-tawf-line: #AEBFB5;
   --color-tawf-accent: #1f6b54;
   --color-tawf-accent-deep: #175545;
   --color-paper: #fbfcfa;
-  --color-glaze: #dce8e1;
+  --color-glaze: #D3E2DA;
   --color-mint: #d3ecdd;
   --color-honey: #8a6414;
   --color-butter: #f2e3b5;
@@ -54,18 +54,18 @@
   --color-tawf-green-light: #175545; /* accent deep: hover */
   --color-tawf-ink: #10261f;
   --color-tawf-sand: #eef1ec; /* stone: page ground */
-  --color-tawf-muted: #4a5f57;
+  --color-tawf-muted: #33473F;
   --color-tawf-gold: #8a6414; /* honey: the one warm accent, light grounds only */
 
   /* Headings are Inter here. The serif face stays loaded and stays in use on the app pages. */
   --font-serif: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
 
   /* New palette names. */
-  --color-tawf-line: #ced8d1;
+  --color-tawf-line: #AEBFB5;
   --color-tawf-accent: #1f6b54;
   --color-tawf-accent-deep: #175545;
   --color-paper: #fbfcfa;
-  --color-glaze: #dce8e1;
+  --color-glaze: #D3E2DA;
   --color-mint: #d3ecdd;
   --color-honey: #8a6414;
   --color-butter: #f2e3b5;
