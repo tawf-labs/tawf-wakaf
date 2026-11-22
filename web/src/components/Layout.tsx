@@ -148,7 +148,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <main>{children}</main>
       </div>
 
-      <footer data-chrome className="on-dark bg-tawf-ink py-16 text-white/60">
+      <footer data-chrome className="on-dark bg-tawf-ink py-16 text-white/80">
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
             <div>

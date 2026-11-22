@@ -60,7 +60,7 @@ export default function StepsSection() {
         </Reveal>
 
         <div className="mt-12 md:mt-16">
-          <StickySteps steps={steps} fallback={<StepTimeline steps={steps} />} />
+          <StickySteps panel="#FBFCFA" steps={steps} fallback={<StepTimeline steps={steps} />} />
         </div>
 
         <div className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-4">
